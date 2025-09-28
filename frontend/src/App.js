@@ -9,7 +9,6 @@ import ContactPage from "./pages/ContactPage";
 import NewsPage from "./pages/NewsPage";
 import NewsletterPage from "./pages/NewsletterPage";
 import MembershipSuccessPage from "./pages/MembershipSuccessPage";
-import AdminPage from "./pages/AdminPage";
 
 // Import components
 import Header from "./components/Header";
@@ -28,7 +27,6 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/newsletter" element={<NewsletterPage />} />
-            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
         <Footer />

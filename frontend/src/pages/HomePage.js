@@ -8,19 +8,19 @@ const HomePage = () => {
       icon: <Users className="w-8 h-8" />,
       title: "Engage & Connect",
       description: "Connect with fellow alumni through our volunteer and event opportunities. Build lasting professional relationships.",
-      image: "https://images.unsplash.com/photo-1590650046871-92c887180603"
+      image: "https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/33jxbg83_5.png"
     },
     {
       icon: <TrendingUp className="w-8 h-8" />,
       title: "Grow & Develop", 
       description: "Access exclusive resources, news, and updates for ICAA members. Advance your career with our professional development programs.",
-      image: "https://images.unsplash.com/photo-1758520144420-3e5b22e9b9a4"
+      image: "https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/dbw9b0fo_6.jpeg"
     },
     {
       icon: <ShoppingBag className="w-8 h-8" />,
       title: "Shop & Support",
       description: "Get your ICAA-branded merchandise and show your alumni pride while supporting our community initiatives.",
-      image: "https://images.unsplash.com/photo-1758519291037-db9ec86cda69"
+      image: "https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/tlr7ww7g_IMG_3339.jpeg"
     }
   ];
 
@@ -151,8 +151,8 @@ const HomePage = () => {
             </div>
             <div>
               <img 
-                src="https://images.unsplash.com/photo-1631548637245-043803a8b776" 
-                alt="Chicago Skyline" 
+                src="https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/8vmg9742_IMG_2965.jpeg" 
+                alt="ICAA Community" 
                 className="rounded-lg shadow-2xl w-full"
               />
             </div>

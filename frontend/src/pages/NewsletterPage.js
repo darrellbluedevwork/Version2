@@ -1,36 +1,10 @@
 import React, { useState } from 'react';
-import { Mail, Download, Calendar, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { Mail, Download, Calendar, ArrowLeft, ArrowRight, Eye } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import axios from 'axios';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const NewsletterPage = () => {
-  const [email, setEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
-
-  const handleNewsletterSignup = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubscriptionStatus(null);
-
-    try {
-      await axios.post(`${API}/newsletter/subscribe`, { email });
-      setSubscriptionStatus('success');
-      setEmail('');
-    } catch (error) {
-      console.error('Error subscribing to newsletter:', error);
-      setSubscriptionStatus('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // Newsletter archives - from November 2024 to current
   const newsletters = [
     {
@@ -39,21 +13,24 @@ const NewsletterPage = () => {
       date: '2025-01-15',
       description: 'New Year, New Opportunities: Kicking off 2025 with exciting member updates and upcoming events.',
       downloadUrl: '#',
-      featured: true
+      featured: true,
+      image: 'https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/tlr7ww7g_IMG_3339.jpeg'
     },
     {
       id: '2024-12',
       title: 'ICAA Newsletter - December 2024',
       date: '2024-12-15',
       description: 'Year-end celebration highlights and looking ahead to 2025 initiatives.',
-      downloadUrl: '#'
+      downloadUrl: '#',
+      image: 'https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/8vmg9742_IMG_2965.jpeg'
     },
     {
       id: '2024-11',
       title: 'ICAA Newsletter - November 2024',
       date: '2024-11-15',
       description: 'Fall networking events recap and holiday season community activities.',
-      downloadUrl: '#'
+      downloadUrl: '#',
+      image: 'https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/33jxbg83_5.png'
     }
   ];
 
@@ -71,75 +48,53 @@ const NewsletterPage = () => {
       <section className="relative py-20 bg-gradient-to-r from-red-600 to-red-700 text-white">
         <div className="container text-center">
           <h1 className="text-5xl font-bold mb-6" style={{ fontFamily: 'League Spartan' }}>
-            ICAA Newsletter
+            ICAA Newsletter Archive
           </h1>
           <p className="text-xl opacity-90 max-w-2xl mx-auto">
-            Stay connected with monthly updates, member spotlights, and community news delivered straight to your inbox.
+            Browse our monthly newsletter archive featuring community updates, member spotlights, and event highlights - completely free to access!
           </p>
         </div>
       </section>
 
-      {/* Newsletter Subscription */}
+      {/* Newsletter Benefits */}
       <section className="py-16 bg-white">
         <div className="container max-w-4xl">
-          <Card className="shadow-xl">
-            <CardHeader className="text-center">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Stay Informed with ICAA</h2>
+            <p className="text-lg text-gray-600">
+              Our monthly newsletters keep you connected with the ICAA community, featuring the latest news, events, and member achievements.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-8 h-8 text-red-600" />
               </div>
-              <CardTitle className="text-3xl">Subscribe to Our Newsletter</CardTitle>
-              <CardDescription className="text-lg">
-                Get the latest ICAA news, event announcements, and member spotlights delivered monthly.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleNewsletterSignup} className="max-w-md mx-auto">
-                <div className="flex gap-4 mb-4">
-                  <Input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="flex-1"
-                    data-testid="newsletter-email-input"
-                  />
-                  <Button 
-                    type="submit" 
-                    className="bg-red-600 hover:bg-red-700 px-8"
-                    disabled={isSubmitting}
-                    data-testid="newsletter-subscribe-btn"
-                  >
-                    {isSubmitting ? 'Subscribing...' : 'Subscribe'}
-                  </Button>
-                </div>
-
-                {subscriptionStatus && (
-                  <div className={`p-4 rounded-lg text-center ${
-                    subscriptionStatus === 'success' 
-                      ? 'bg-green-50 text-green-700 border border-green-200' 
-                      : 'bg-red-50 text-red-700 border border-red-200'
-                  }`} data-testid="newsletter-subscription-status">
-                    {subscriptionStatus === 'success' ? (
-                      <div className="flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Successfully subscribed! Check your email for confirmation.
-                      </div>
-                    ) : (
-                      'There was an error subscribing. Please try again.'
-                    )}
-                  </div>
-                )}
-              </form>
-
-              <div className="text-center mt-6">
-                <p className="text-sm text-gray-600">
-                  By subscribing, you agree to receive monthly newsletters from ICAA. 
-                  You can unsubscribe at any time.
-                </p>
+              <h3 className="text-xl font-semibold mb-3">Monthly Updates</h3>
+              <p className="text-gray-600">
+                Get the latest ICAA news, upcoming events, and important announcements delivered monthly.
+              </p>
+            </div>
+            <div className="text-center p-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Eye className="w-8 h-8 text-red-600" />
               </div>
-            </CardContent>
-          </Card>
+              <h3 className="text-xl font-semibold mb-3">Member Spotlights</h3>
+              <p className="text-gray-600">
+                Read inspiring stories and achievements from our diverse alumni community.
+              </p>
+            </div>
+            <div className="text-center p-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Event Highlights</h3>
+              <p className="text-gray-600">
+                Catch up on past events and get early access to information about upcoming gatherings.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -157,7 +112,7 @@ const NewsletterPage = () => {
             {newsletters.map((newsletter, index) => (
               <Card 
                 key={newsletter.id} 
-                className={`hover:shadow-xl transition-all duration-300 ${
+                className={`relative transition-all duration-300 hover:shadow-xl ${
                   newsletter.featured ? 'ring-2 ring-red-500 shadow-lg' : ''
                 }`}
                 data-testid={`newsletter-${newsletter.id}`}
@@ -167,7 +122,7 @@ const NewsletterPage = () => {
                     Latest Issue
                   </Badge>
                 )}
-                
+
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline" className="text-xs">
@@ -182,26 +137,26 @@ const NewsletterPage = () => {
                 </CardHeader>
 
                 <CardContent>
+                  {/* Newsletter preview with actual ICAA photo */}
+                  <div className="mb-4">
+                    <img 
+                      src={newsletter.image} 
+                      alt={`Newsletter ${newsletter.id} preview`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                  </div>
+
                   <p className="text-gray-600 text-sm mb-6 leading-relaxed">
                     {newsletter.description}
                   </p>
-
-                  {/* PDF Preview Area */}
-                  <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 mb-4 text-center">
-                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                      <Mail className="w-6 h-6 text-red-600" />
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">PDF Newsletter</p>
-                    <p className="text-xs text-gray-500">Interactive page turning available</p>
-                  </div>
 
                   <div className="space-y-2">
                     <Button 
                       className="w-full bg-red-600 hover:bg-red-700"
                       data-testid={`view-newsletter-${newsletter.id}`}
                     >
-                      <ArrowRight className="w-4 h-4 mr-2" />
-                      View Newsletter
+                      <Eye className="w-4 h-4 mr-2" />
+                      Read Newsletter
                     </Button>
                     <Button 
                       variant="outline" 
@@ -312,6 +267,17 @@ const NewsletterPage = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Call to Action */}
+          <div className="text-center mt-12 p-8 bg-red-50 rounded-xl">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Want to Get Involved?</h3>
+            <p className="text-gray-600 mb-6">
+              If you have news, achievements, or stories to share in our newsletter, we'd love to hear from you!
+            </p>
+            <Button className="bg-red-600 hover:bg-red-700">
+              Submit Your Story
+            </Button>
           </div>
         </div>
       </section>

@@ -10,8 +10,11 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="footer-section">
             <div className="flex items-center space-x-2 mb-4">
-              <span className="text-3xl font-bold text-red-600">*</span>
-              <span className="text-2xl font-bold text-white" style={{ fontFamily: 'League Spartan' }}>ICAA</span>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_alumni-hub-28/artifacts/dc4k6qfd_New%20-%20iCAA%20Logo.zip%20-%203.jpeg" 
+                alt="ICAA Logo" 
+                className="h-8 w-auto filter brightness-0 invert"
+              />
             </div>
             <p className="text-gray-300 mb-4">
               i.c.stars |* Chicago Alumni Association - Connecting alumni to professional development, networking, and growth opportunities.
