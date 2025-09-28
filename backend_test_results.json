@@ -1,0 +1,164 @@
+{
+  "timestamp": "2025-09-28T18:50:53.282248",
+  "total_tests": 14,
+  "passed_tests": 14,
+  "success_rate": 100.0,
+  "test_results": [
+    {
+      "test": "Root API Endpoint",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "message": "ICAA Alumni Portal API"
+      }
+    },
+    {
+      "test": "Create News Post",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "id": "ae952876-703d-4638-b30c-43c7df0c1fac",
+        "title": "Test News Article",
+        "content": "This is the full content of the test news article for ICAA testing.",
+        "excerpt": "This is a test news article excerpt",
+        "author": "Test Author",
+        "published_date": "2025-09-28T18:50:51.851034Z",
+        "is_published": true
+      }
+    },
+    {
+      "test": "Get News Posts",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 1 articles"
+    },
+    {
+      "test": "Get Specific News Post",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "id": "ae952876-703d-4638-b30c-43c7df0c1fac",
+        "title": "Test News Article",
+        "content": "This is the full content of the test news article for ICAA testing.",
+        "excerpt": "This is a test news article excerpt",
+        "author": "Test Author",
+        "published_date": "2025-09-28T18:50:51.851034Z",
+        "is_published": true
+      }
+    },
+    {
+      "test": "Submit Contact Form",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "message": "Contact form submitted successfully",
+        "id": "25ba107c-7020-4108-8cf7-f0ee8d055f55"
+      }
+    },
+    {
+      "test": "Get Contact Forms",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 1 contact forms"
+    },
+    {
+      "test": "Newsletter Subscription",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "message": "Successfully subscribed to newsletter",
+        "id": "28b67c86-ee2a-44e9-8677-49ae9cb18d58"
+      }
+    },
+    {
+      "test": "Get Newsletter Subscribers",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 1 subscribers"
+    },
+    {
+      "test": "Create Free Member",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "id": "9d95fd2d-f2c8-4735-976f-89482efe8e0d",
+        "name": "Test Free Member",
+        "email": "free_member_185052@example.com",
+        "membership_tier": "free",
+        "payment_status": "pending",
+        "created_at": "2025-09-28T18:50:52.161087Z",
+        "updated_at": "2025-09-28T18:50:52.161091Z"
+      }
+    },
+    {
+      "test": "Get Members",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 1 members"
+    },
+    {
+      "test": "Get Specific Member",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "id": "9d95fd2d-f2c8-4735-976f-89482efe8e0d",
+        "name": "Test Free Member",
+        "email": "free_member_185052@example.com",
+        "membership_tier": "free",
+        "payment_status": "pending",
+        "created_at": "2025-09-28T18:50:52.161087Z",
+        "updated_at": "2025-09-28T18:50:52.161091Z"
+      }
+    },
+    {
+      "test": "Create Free Checkout Session",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "message": "Free membership created successfully",
+        "member_id": "a0fd6960-5234-41cb-a349-be4f3633c53e"
+      }
+    },
+    {
+      "test": "Create Paid Checkout Session",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "checkout_url": "https://checkout.stripe.com/c/pay/cs_test_a1mvA7PoC1XbM06KLdCZSSNwXSwE68qXZv46W5AXMyXZeCxaC6JCVkldrA#fidkdWxOYHwnPyd1blpxYHZxWjA0V2xNT25GMUpjXTRCPFZWf11pVVxyM0NdNmZHN193MkNLVTJLRGlBTUldTDRNQFFITE81QEBmRG5LUWl2UW8yQkdgQVNxV1RMPGBUMzJuYWs2TmFhMEhQNTVSYmNqMEZQYycpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZjY2NjY2MnKSdpZHxqcHFRfHVgJz8ndmxrYmlgWmxxYGgnKSdga2RnaWBVaWRmYG1qaWFgd3YnP3F3cGB4JSUl",
+        "session_id": "cs_test_a1mvA7PoC1XbM06KLdCZSSNwXSwE68qXZv46W5AXMyXZeCxaC6JCVkldrA"
+      }
+    },
+    {
+      "test": "Get Checkout Status",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "status": "open",
+        "payment_status": "unpaid",
+        "amount_total": 1000,
+        "currency": "usd"
+      }
+    }
+  ],
+  "created_ids": {
+    "news_id": "ae952876-703d-4638-b30c-43c7df0c1fac",
+    "contact_id": "25ba107c-7020-4108-8cf7-f0ee8d055f55",
+    "subscriber_id": "28b67c86-ee2a-44e9-8677-49ae9cb18d58",
+    "member_id": "9d95fd2d-f2c8-4735-976f-89482efe8e0d",
+    "session_id": "cs_test_a1mvA7PoC1XbM06KLdCZSSNwXSwE68qXZv46W5AXMyXZeCxaC6JCVkldrA"
+  }
+}
