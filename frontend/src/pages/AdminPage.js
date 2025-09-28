@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Mail, MessageSquare, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Mail, MessageSquare, Eye, Upload, FileText, Download } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -19,14 +19,21 @@ const AdminPage = () => {
     content: '',
     author: 'ICAA Admin'
   });
+  const [newsletterForm, setNewsletterForm] = useState({
+    title: '',
+    description: '',
+    month: ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [uploadingPdf, setUploadingPdf] = useState(null);
 
   // Data states
   const [newsArticles, setNewsArticles] = useState([]);
   const [members, setMembers] = useState([]);
   const [contactForms, setContactForms] = useState([]);
   const [newsletterSubscribers, setNewsletterSubscribers] = useState([]);
+  const [newsletters, setNewsletters] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -34,17 +41,19 @@ const AdminPage = () => {
 
   const fetchData = async () => {
     try {
-      const [newsRes, membersRes, contactRes, subscribersRes] = await Promise.all([
+      const [newsRes, membersRes, contactRes, subscribersRes, newslettersRes] = await Promise.all([
         axios.get(`${API}/news`).catch(() => ({ data: [] })),
         axios.get(`${API}/members`).catch(() => ({ data: [] })),
         axios.get(`${API}/contact`).catch(() => ({ data: [] })),
-        axios.get(`${API}/newsletter/subscribers`).catch(() => ({ data: [] }))
+        axios.get(`${API}/newsletter/subscribers`).catch(() => ({ data: [] })),
+        axios.get(`${API}/newsletters`).catch(() => ({ data: [] }))
       ]);
 
       setNewsArticles(newsRes.data);
       setMembers(membersRes.data);
       setContactForms(contactRes.data);
       setNewsletterSubscribers(subscribersRes.data);
+      setNewsletters(newslettersRes.data);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     }
@@ -68,8 +77,51 @@ const AdminPage = () => {
     }
   };
 
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      await axios.post(`${API}/newsletters`, newsletterForm);
+      setSubmitStatus('newsletter-success');
+      setNewsletterForm({ title: '', description: '', month: '' });
+      fetchData(); // Refresh newsletter list
+    } catch (error) {
+      console.error('Error creating newsletter:', error);
+      setSubmitStatus('newsletter-error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePdfUpload = async (newsletterId, file) => {
+    setUploadingPdf(newsletterId);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      await axios.post(`${API}/newsletters/${newsletterId}/upload-pdf`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      fetchData(); // Refresh to show updated newsletter with PDF
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      alert('Error uploading PDF. Please try again.');
+    } finally {
+      setUploadingPdf(null);
+    }
+  };
+
   const handleInputChange = (field, value) => {
     setNewsForm({ ...newsForm, [field]: value });
+  };
+
+  const handleNewsletterInputChange = (field, value) => {
+    setNewsletterForm({ ...newsletterForm, [field]: value });
   };
 
   const formatDate = (dateString) => {
@@ -115,7 +167,7 @@ const AdminPage = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">ICAA Admin Dashboard</h1>
-          <p className="text-gray-600">Manage content, members, and community communications</p>
+          <p className="text-gray-600">Manage content, members, newsletters, and community communications</p>
         </div>
 
         {/* Stats Cards */}
@@ -139,11 +191,12 @@ const AdminPage = () => {
 
         {/* Admin Tabs */}
         <Tabs defaultValue="news" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="news" data-testid="admin-tab-news">News Management</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="news" data-testid="admin-tab-news">News</TabsTrigger>
+            <TabsTrigger value="newsletters" data-testid="admin-tab-newsletters">Newsletters</TabsTrigger>
             <TabsTrigger value="members" data-testid="admin-tab-members">Members</TabsTrigger>
-            <TabsTrigger value="contact" data-testid="admin-tab-contact">Contact Forms</TabsTrigger>
-            <TabsTrigger value="newsletter" data-testid="admin-tab-newsletter">Newsletter</TabsTrigger>
+            <TabsTrigger value="contact" data-testid="admin-tab-contact">Contact</TabsTrigger>
+            <TabsTrigger value="subscribers" data-testid="admin-tab-subscribers">Subscribers</TabsTrigger>
           </TabsList>
 
           {/* News Management */}
@@ -208,16 +261,15 @@ const AdminPage = () => {
                       />
                     </div>
 
-                    {submitStatus && (
-                      <div className={`p-4 rounded-lg ${
-                        submitStatus === 'success' 
-                          ? 'bg-green-50 text-green-700 border border-green-200' 
-                          : 'bg-red-50 text-red-700 border border-red-200'
-                      }`} data-testid="news-submit-status">
-                        {submitStatus === 'success' 
-                          ? 'News article published successfully!' 
-                          : 'Error publishing article. Please try again.'
-                        }
+                    {submitStatus === 'success' && (
+                      <div className="p-4 rounded-lg bg-green-50 text-green-700 border border-green-200" data-testid="news-submit-status">
+                        News article published successfully!
+                      </div>
+                    )}
+
+                    {submitStatus === 'error' && (
+                      <div className="p-4 rounded-lg bg-red-50 text-red-700 border border-red-200">
+                        Error publishing article. Please try again.
                       </div>
                     )}
 
@@ -254,20 +306,164 @@ const AdminPage = () => {
                         </div>
                         <p className="text-xs text-gray-600 mb-2">By: {article.author}</p>
                         <p className="text-sm text-gray-700 line-clamp-2">{article.excerpt}</p>
-                        <div className="flex gap-2 mt-3">
-                          <Button size="sm" variant="outline" className="text-xs">
-                            <Edit className="w-3 h-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-xs text-red-600">
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
                       </div>
                     ))}
                     {newsArticles.length === 0 && (
                       <p className="text-center text-gray-500 py-8">No articles published yet.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Newsletter Management */}
+          <TabsContent value="newsletters" className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Create Newsletter */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Newsletter</CardTitle>
+                  <CardDescription>
+                    Add a new monthly newsletter entry
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleNewsletterSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="newsletter-title">Title *</Label>
+                      <Input
+                        id="newsletter-title"
+                        value={newsletterForm.title}
+                        onChange={(e) => handleNewsletterInputChange('title', e.target.value)}
+                        placeholder="e.g., ICAA Newsletter - January 2025"
+                        required
+                        data-testid="newsletter-title-input"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="newsletter-month">Month *</Label>
+                      <Input
+                        id="newsletter-month"
+                        type="month"
+                        value={newsletterForm.month}
+                        onChange={(e) => handleNewsletterInputChange('month', e.target.value)}
+                        required
+                        data-testid="newsletter-month-input"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="newsletter-description">Description *</Label>
+                      <Textarea
+                        id="newsletter-description"
+                        value={newsletterForm.description}
+                        onChange={(e) => handleNewsletterInputChange('description', e.target.value)}
+                        placeholder="Brief description of this newsletter issue"
+                        className="min-h-[100px]"
+                        required
+                        data-testid="newsletter-description-input"
+                      />
+                    </div>
+
+                    {submitStatus === 'newsletter-success' && (
+                      <div className="p-4 rounded-lg bg-green-50 text-green-700 border border-green-200">
+                        Newsletter created successfully! You can now upload a PDF.
+                      </div>
+                    )}
+
+                    {submitStatus === 'newsletter-error' && (
+                      <div className="p-4 rounded-lg bg-red-50 text-red-700 border border-red-200">
+                        Error creating newsletter. Please try again.
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      disabled={isSubmitting}
+                      data-testid="create-newsletter-btn"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isSubmitting ? 'Creating...' : 'Create Newsletter'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Newsletter List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Published Newsletters</CardTitle>
+                  <CardDescription>
+                    Manage newsletter issues and upload PDFs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                    {newsletters.map((newsletter, index) => (
+                      <div key={newsletter.id} className="border rounded-lg p-4" data-testid={`newsletter-item-${index}`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-sm">{newsletter.title}</h4>
+                            <p className="text-xs text-gray-600 mb-2">Month: {newsletter.month}</p>
+                            <p className="text-sm text-gray-700 line-clamp-2">{newsletter.description}</p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {formatDate(newsletter.uploaded_at)}
+                          </Badge>
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                          {newsletter.pdf_filename ? (
+                            <div className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
+                              <div className="flex items-center">
+                                <FileText className="w-4 h-4 text-green-600 mr-2" />
+                                <span className="text-sm text-green-700">PDF Uploaded</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => window.open(`${API}/newsletters/${newsletter.id}/pdf`, '_blank')}
+                              >
+                                <Download className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".pdf"
+                                onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    handlePdfUpload(newsletter.id, file);
+                                  }
+                                }}
+                                className="hidden"
+                                id={`pdf-${newsletter.id}`}
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => document.getElementById(`pdf-${newsletter.id}`).click()}
+                                disabled={uploadingPdf === newsletter.id}
+                                data-testid={`upload-pdf-${newsletter.id}`}
+                              >
+                                <Upload className="w-3 h-3 mr-1" />
+                                {uploadingPdf === newsletter.id ? 'Uploading...' : 'Upload PDF'}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {newsletters.length === 0 && (
+                      <p className="text-center text-gray-500 py-8">No newsletters created yet.</p>
                     )}
                   </div>
                 </CardContent>
@@ -338,9 +534,6 @@ const AdminPage = () => {
                       </div>
                       <h5 className="font-medium text-sm mb-1">{form.subject}</h5>
                       <p className="text-sm text-gray-700 line-clamp-3">{form.message}</p>
-                      <Button size="sm" variant="outline" className="mt-3 text-xs">
-                        Reply
-                      </Button>
                     </div>
                   ))}
                   {contactForms.length === 0 && (
@@ -351,8 +544,8 @@ const AdminPage = () => {
             </Card>
           </TabsContent>
 
-          {/* Newsletter Tab */}
-          <TabsContent value="newsletter" className="space-y-6">
+          {/* Newsletter Subscribers Tab */}
+          <TabsContent value="subscribers" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Newsletter Subscribers</CardTitle>
@@ -370,14 +563,9 @@ const AdminPage = () => {
                           Subscribed: {formatDate(subscriber.subscribed_at)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={subscriber.is_active ? 'default' : 'secondary'}>
-                          {subscriber.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                        <Button size="sm" variant="outline" className="text-xs">
-                          Manage
-                        </Button>
-                      </div>
+                      <Badge variant={subscriber.is_active ? 'default' : 'secondary'}>
+                        {subscriber.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
                     </div>
                   ))}
                   {newsletterSubscribers.length === 0 && (

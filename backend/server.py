@@ -1,5 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File
+from fastapi.responses import HTMLResponse, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict
 import uuid
 from datetime import datetime, timezone
+import shutil
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
@@ -28,6 +29,10 @@ api_router = APIRouter(prefix="/api")
 
 # Stripe integration
 stripe_api_key = os.environ.get('STRIPE_API_KEY')
+
+# Ensure uploads directory exists
+UPLOAD_DIR = ROOT_DIR / "uploads" / "newsletters"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Define Models
 class Member(BaseModel):
@@ -81,6 +86,21 @@ class NewsletterSubscriber(BaseModel):
 
 class NewsletterSubscriberCreate(BaseModel):
     email: EmailStr
+
+class Newsletter(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    month: str  # Format: "2025-01"
+    pdf_filename: Optional[str] = None
+    pdf_url: Optional[str] = None
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    is_published: bool = True
+
+class NewsletterCreate(BaseModel):
+    title: str
+    description: str
+    month: str
 
 class PaymentTransaction(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -170,6 +190,74 @@ async def get_news_post(post_id: str):
     if not post:
         raise HTTPException(status_code=404, detail="News post not found")
     return NewsPost(**parse_from_mongo(post))
+
+# Newsletter endpoints
+@api_router.post("/newsletters", response_model=Newsletter)
+async def create_newsletter(newsletter: NewsletterCreate):
+    newsletter_dict = newsletter.dict()
+    newsletter_obj = Newsletter(**newsletter_dict)
+    prepared_data = prepare_for_mongo(newsletter_obj.dict())
+    await db.newsletters.insert_one(prepared_data)
+    return newsletter_obj
+
+@api_router.get("/newsletters", response_model=List[Newsletter])
+async def get_newsletters():
+    newsletters = await db.newsletters.find({"is_published": True}).sort("month", -1).to_list(1000)
+    return [Newsletter(**parse_from_mongo(newsletter)) for newsletter in newsletters]
+
+@api_router.post("/newsletters/{newsletter_id}/upload-pdf")
+async def upload_newsletter_pdf(newsletter_id: str, file: UploadFile = File(...)):
+    # Validate file type
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
+    # Find newsletter
+    newsletter = await db.newsletters.find_one({"id": newsletter_id})
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+    
+    # Generate unique filename
+    file_extension = file.filename.split('.')[-1]
+    unique_filename = f"{newsletter_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_extension}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    # Save file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Update newsletter in database
+        pdf_url = f"/api/newsletters/{newsletter_id}/pdf"
+        update_data = {
+            "pdf_filename": unique_filename,
+            "pdf_url": pdf_url,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.newsletters.update_one(
+            {"id": newsletter_id},
+            {"$set": update_data}
+        )
+        
+        return {"message": "PDF uploaded successfully", "pdf_url": pdf_url}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload PDF: {str(e)}")
+
+@api_router.get("/newsletters/{newsletter_id}/pdf")
+async def get_newsletter_pdf(newsletter_id: str):
+    newsletter = await db.newsletters.find_one({"id": newsletter_id})
+    if not newsletter or not newsletter.get('pdf_filename'):
+        raise HTTPException(status_code=404, detail="PDF not found")
+    
+    file_path = UPLOAD_DIR / newsletter['pdf_filename']
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="PDF file not found on server")
+    
+    return FileResponse(
+        path=file_path,
+        media_type='application/pdf',
+        filename=newsletter.get('title', 'newsletter') + '.pdf'
+    )
 
 # Contact form endpoints
 @api_router.post("/contact")
