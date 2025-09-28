@@ -8,6 +8,8 @@ import MembershipPage from "./pages/MembershipPage";
 import ContactPage from "./pages/ContactPage";
 import NewsPage from "./pages/NewsPage";
 import NewsletterPage from "./pages/NewsletterPage";
+import EventsPage from "./pages/EventsPage";
+import EventDetailsPage from "./pages/EventDetailsPage";
 import MembershipSuccessPage from "./pages/MembershipSuccessPage";
 import AdminPage from "./pages/AdminPage";
 
@@ -28,6 +30,8 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/newsletter" element={<NewsletterPage />} />
+            <Route path="/events" element={<EventsPage />} />
+            <Route path="/events/:eventId" element={<EventDetailsPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>

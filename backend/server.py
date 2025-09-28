@@ -49,6 +49,45 @@ class MemberCreate(BaseModel):
     email: EmailStr
     membership_tier: str
 
+class Event(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    event_type: str  # "networking", "professional_development", "social", "third_thursday", "other"
+    date: datetime
+    location: str
+    capacity: Optional[int] = None  # None means unlimited
+    current_registrations: int = 0
+    waitlist_count: int = 0
+    created_by: str = "ICAA Admin"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    is_active: bool = True
+
+class EventCreate(BaseModel):
+    title: str
+    description: str
+    event_type: str
+    date: datetime
+    location: str
+    capacity: Optional[int] = None
+    created_by: Optional[str] = "ICAA Admin"
+
+class EventRegistration(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    event_id: str
+    member_id: str
+    member_name: str
+    member_email: EmailStr
+    registration_status: str = "registered"  # "registered", "waitlisted", "cancelled"
+    registered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    notes: Optional[str] = None
+
+class EventRegistrationCreate(BaseModel):
+    event_id: str
+    member_name: str
+    member_email: EmailStr
+    notes: Optional[str] = None
+
 class NewsPost(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
@@ -152,7 +191,7 @@ def parse_from_mongo(item):
     if isinstance(item, dict):
         parsed = {}
         for key, value in item.items():
-            if key.endswith('_at') or key.endswith('_date'):
+            if key.endswith('_at') or key.endswith('_date') or key == 'date':
                 try:
                     if isinstance(value, str):
                         parsed[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
@@ -169,6 +208,96 @@ def parse_from_mongo(item):
 @api_router.get("/")
 async def root():
     return {"message": "ICAA Alumni Portal API"}
+
+# Event endpoints
+@api_router.post("/events", response_model=Event)
+async def create_event(event: EventCreate):
+    event_dict = event.dict()
+    event_obj = Event(**event_dict)
+    prepared_data = prepare_for_mongo(event_obj.dict())
+    await db.events.insert_one(prepared_data)
+    return event_obj
+
+@api_router.get("/events", response_model=List[Event])
+async def get_events(limit: int = 50, skip: int = 0):
+    events = await db.events.find({"is_active": True}).sort("date", 1).skip(skip).limit(limit).to_list(limit)
+    return [Event(**parse_from_mongo(event)) for event in events]
+
+@api_router.get("/events/{event_id}", response_model=Event)
+async def get_event(event_id: str):
+    event = await db.events.find_one({"id": event_id, "is_active": True})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return Event(**parse_from_mongo(event))
+
+@api_router.post("/events/{event_id}/register")
+async def register_for_event(event_id: str, registration: EventRegistrationCreate):
+    # Get event details
+    event = await db.events.find_one({"id": event_id, "is_active": True})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Check if already registered
+    existing_registration = await db.event_registrations.find_one({
+        "event_id": event_id,
+        "member_email": registration.member_email,
+        "registration_status": {"$in": ["registered", "waitlisted"]}
+    })
+    if existing_registration:
+        raise HTTPException(status_code=400, detail="Already registered for this event")
+    
+    # Check capacity and determine registration status
+    current_registrations = await db.event_registrations.count_documents({
+        "event_id": event_id,
+        "registration_status": "registered"
+    })
+    
+    registration_status = "registered"
+    if event.get('capacity') is not None and current_registrations >= event['capacity']:
+        registration_status = "waitlisted"
+    
+    # Create registration
+    registration_dict = registration.dict()
+    registration_obj = EventRegistration(
+        **registration_dict,
+        member_id=str(uuid.uuid4()),  # Generate temp ID for non-members
+        registration_status=registration_status
+    )
+    prepared_data = prepare_for_mongo(registration_obj.dict())
+    await db.event_registrations.insert_one(prepared_data)
+    
+    # Update event counters
+    if registration_status == "registered":
+        await db.events.update_one(
+            {"id": event_id},
+            {"$inc": {"current_registrations": 1}}
+        )
+    else:
+        await db.events.update_one(
+            {"id": event_id},
+            {"$inc": {"waitlist_count": 1}}
+        )
+    
+    return {
+        "message": f"Successfully {'registered' if registration_status == 'registered' else 'added to waitlist'} for event",
+        "registration_status": registration_status,
+        "registration_id": registration_obj.id
+    }
+
+@api_router.get("/events/{event_id}/registrations", response_model=List[EventRegistration])
+async def get_event_registrations(event_id: str):
+    registrations = await db.event_registrations.find({"event_id": event_id}).sort("registered_at", 1).to_list(1000)
+    return [EventRegistration(**parse_from_mongo(reg)) for reg in registrations]
+
+@api_router.delete("/events/{event_id}")
+async def delete_event(event_id: str):
+    result = await db.events.update_one(
+        {"id": event_id},
+        {"$set": {"is_active": False}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return {"message": "Event deleted successfully"}
 
 # News & Updates endpoints
 @api_router.post("/news", response_model=NewsPost)
