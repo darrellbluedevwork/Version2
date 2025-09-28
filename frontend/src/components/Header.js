@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ShoppingCart } from 'lucide-react';
+import { Menu, X, ShoppingCart, ChevronDown } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAboutDropdownOpen, setIsAboutDropdownOpen] = useState(false);
   const location = useLocation();
 
   const navigation = [
     { name: 'Home', href: '/' },
+    { 
+      name: 'About', 
+      href: '/about',
+      dropdown: [
+        { name: 'About iCAA', href: '/about' },
+        { name: 'Board Members', href: '/board' }
+      ]
+    },
     { name: 'Membership', href: '/membership' },
     { name: 'Events', href: '/events' },
     { name: 'Documents', href: '/documents' },
@@ -18,6 +27,7 @@ const Header = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+  const isAboutActive = () => location.pathname === '/about' || location.pathname === '/board';
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -37,17 +47,53 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-6">
             {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`text-sm font-medium transition-colors hover:text-red-600 ${
-                  isActive(item.href) 
-                    ? 'text-red-600 border-b-2 border-red-600 pb-1' 
-                    : 'text-gray-700'
-                }`}
-              >
-                {item.name}
-              </Link>
+              <div key={item.name} className="relative">
+                {item.dropdown ? (
+                  <div 
+                    className="relative"
+                    onMouseEnter={() => setIsAboutDropdownOpen(true)}
+                    onMouseLeave={() => setIsAboutDropdownOpen(false)}
+                  >
+                    <button
+                      className={`flex items-center text-sm font-medium transition-colors hover:text-red-600 ${
+                        isAboutActive()
+                          ? 'text-red-600 border-b-2 border-red-600 pb-1' 
+                          : 'text-gray-700'
+                      }`}
+                    >
+                      {item.name}
+                      <ChevronDown className="w-4 h-4 ml-1" />
+                    </button>
+                    
+                    {isAboutDropdownOpen && (
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-2 z-50">
+                        {item.dropdown.map((dropdownItem) => (
+                          <Link
+                            key={dropdownItem.name}
+                            to={dropdownItem.href}
+                            className={`block px-4 py-2 text-sm transition-colors hover:bg-red-50 hover:text-red-600 ${
+                              isActive(dropdownItem.href) ? 'text-red-600 bg-red-50' : 'text-gray-700'
+                            }`}
+                          >
+                            {dropdownItem.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link
+                    to={item.href}
+                    className={`text-sm font-medium transition-colors hover:text-red-600 ${
+                      isActive(item.href) 
+                        ? 'text-red-600 border-b-2 border-red-600 pb-1' 
+                        : 'text-gray-700'
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -58,7 +104,6 @@ const Header = () => {
               className="relative text-gray-700 hover:text-red-600 transition-colors"
             >
               <ShoppingCart size={24} />
-              {/* Cart badge could be added here */}
             </Link>
 
             {/* Mobile menu button */}
@@ -78,16 +123,35 @@ const Header = () => {
           <nav className="md:hidden py-4 border-t border-gray-200">
             <div className="space-y-4">
               {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`block text-sm font-medium transition-colors hover:text-red-600 ${
-                    isActive(item.href) ? 'text-red-600' : 'text-gray-700'
-                  }`}
-                >
-                  {item.name}
-                </Link>
+                <div key={item.name}>
+                  {item.dropdown ? (
+                    <div className="space-y-2">
+                      <div className="font-medium text-gray-900">{item.name}</div>
+                      {item.dropdown.map((dropdownItem) => (
+                        <Link
+                          key={dropdownItem.name}
+                          to={dropdownItem.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className={`block pl-4 text-sm font-medium transition-colors hover:text-red-600 ${
+                            isActive(dropdownItem.href) ? 'text-red-600' : 'text-gray-700'
+                          }`}
+                        >
+                          {dropdownItem.name}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <Link
+                      to={item.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block text-sm font-medium transition-colors hover:text-red-600 ${
+                        isActive(item.href) ? 'text-red-600' : 'text-gray-700'
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  )}
+                </div>
               ))}
               <Link
                 to="/shop/cart"

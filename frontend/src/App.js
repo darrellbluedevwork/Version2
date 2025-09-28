@@ -4,6 +4,8 @@ import "@/App.css";
 
 // Import pages
 import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
+import BoardPage from "./pages/BoardPage";
 import MembershipPage from "./pages/MembershipPage";
 import ContactPage from "./pages/ContactPage";
 import NewsPage from "./pages/NewsPage";
@@ -29,6 +31,8 @@ function App() {
         <main className="min-h-screen">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/board" element={<BoardPage />} />
             <Route path="/membership" element={<MembershipPage />} />
             <Route path="/membership-success" element={<MembershipSuccessPage />} />
             <Route path="/contact" element={<ContactPage />} />
