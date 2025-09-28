@@ -32,7 +32,9 @@ stripe_api_key = os.environ.get('STRIPE_API_KEY')
 
 # Ensure uploads directory exists
 UPLOAD_DIR = ROOT_DIR / "uploads" / "newsletters"
+DOCUMENTS_DIR = ROOT_DIR / "uploads" / "documents"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Define Models
 class Member(BaseModel):
@@ -87,6 +89,89 @@ class EventRegistrationCreate(BaseModel):
     member_name: str
     member_email: EmailStr
     notes: Optional[str] = None
+
+class Document(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    category: str  # "bylaws", "policies", "forms", "reports", "other"
+    version: str
+    filename: str
+    file_url: str
+    access_level: str = "public"  # "public", "members", "admin"
+    uploaded_by: str = "ICAA Admin"
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    is_current_version: bool = True
+    file_size: Optional[int] = None
+
+class DocumentCreate(BaseModel):
+    title: str
+    description: str
+    category: str
+    version: str
+    access_level: Optional[str] = "public"
+    uploaded_by: Optional[str] = "ICAA Admin"
+
+class Product(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    category: str  # "apparel", "accessories", "other"
+    price: float
+    image_url: Optional[str] = None
+    sizes_available: Optional[List[str]] = None  # For apparel
+    colors_available: Optional[List[str]] = None
+    stock_quantity: int = 0
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ProductCreate(BaseModel):
+    name: str
+    description: str
+    category: str
+    price: float
+    image_url: Optional[str] = None
+    sizes_available: Optional[List[str]] = None
+    colors_available: Optional[List[str]] = None
+    stock_quantity: Optional[int] = 0
+
+class CartItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str  # For anonymous carts
+    product_id: str
+    product_name: str
+    product_price: float
+    quantity: int = 1
+    size: Optional[str] = None
+    color: Optional[str] = None
+    added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CartItemCreate(BaseModel):
+    session_id: str
+    product_id: str
+    quantity: Optional[int] = 1
+    size: Optional[str] = None
+    color: Optional[str] = None
+
+class Order(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_number: str
+    customer_name: str
+    customer_email: EmailStr
+    customer_address: str
+    items: List[Dict]
+    total_amount: float
+    payment_status: str = "pending"  # "pending", "paid", "shipped", "delivered", "cancelled"
+    stripe_session_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class OrderCreate(BaseModel):
+    customer_name: str
+    customer_email: EmailStr
+    customer_address: str
+    items: List[Dict]
 
 class NewsPost(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -167,6 +252,12 @@ class CheckoutRequest(BaseModel):
     user_email: str
     user_name: str
 
+class ShopCheckoutRequest(BaseModel):
+    customer_name: str
+    customer_email: EmailStr
+    customer_address: str
+    items: List[Dict]
+
 # Membership pricing
 MEMBERSHIP_PRICES = {
     "free": 0.0,
@@ -204,12 +295,254 @@ def parse_from_mongo(item):
         return parsed
     return item
 
+def generate_order_number():
+    """Generate a unique order number"""
+    import time
+    return f"ICAA-{int(time.time())}-{str(uuid.uuid4())[:8].upper()}"
+
 # Routes
 @api_router.get("/")
 async def root():
     return {"message": "ICAA Alumni Portal API"}
 
-# Event endpoints
+# Document Repository endpoints
+@api_router.post("/documents", response_model=Document)
+async def create_document(doc: DocumentCreate):
+    doc_dict = doc.dict()
+    doc_obj = Document(**doc_dict, filename="", file_url="")
+    prepared_data = prepare_for_mongo(doc_obj.dict())
+    await db.documents.insert_one(prepared_data)
+    return doc_obj
+
+@api_router.post("/documents/{document_id}/upload")
+async def upload_document(document_id: str, file: UploadFile = File(...)):
+    # Validate file type
+    allowed_extensions = ['.pdf', '.doc', '.docx', '.txt']
+    file_extension = '.' + file.filename.split('.')[-1].lower()
+    if file_extension not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="File type not allowed")
+    
+    # Find document
+    document = await db.documents.find_one({"id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Generate unique filename
+    unique_filename = f"{document_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_extension}"
+    file_path = DOCUMENTS_DIR / unique_filename
+    
+    # Save file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Update document in database
+        file_url = f"/api/documents/{document_id}/file"
+        file_size = file_path.stat().st_size
+        update_data = {
+            "filename": unique_filename,
+            "file_url": file_url,
+            "file_size": file_size,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.documents.update_one(
+            {"id": document_id},
+            {"$set": update_data}
+        )
+        
+        return {"message": "Document uploaded successfully", "file_url": file_url}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload document: {str(e)}")
+
+@api_router.get("/documents", response_model=List[Document])
+async def get_documents(category: Optional[str] = None):
+    query = {}
+    if category:
+        query["category"] = category
+    
+    documents = await db.documents.find(query).sort("uploaded_at", -1).to_list(1000)
+    return [Document(**parse_from_mongo(doc)) for doc in documents]
+
+@api_router.get("/documents/{document_id}/file")
+async def get_document_file(document_id: str):
+    document = await db.documents.find_one({"id": document_id})
+    if not document or not document.get('filename'):
+        raise HTTPException(status_code=404, detail="Document file not found")
+    
+    file_path = DOCUMENTS_DIR / document['filename']
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Document file not found on server")
+    
+    return FileResponse(
+        path=file_path,
+        media_type='application/octet-stream',
+        filename=document.get('title', 'document') + Path(document['filename']).suffix
+    )
+
+# Product/Shop endpoints
+@api_router.post("/products", response_model=Product)
+async def create_product(product: ProductCreate):
+    product_dict = product.dict()
+    product_obj = Product(**product_dict)
+    prepared_data = prepare_for_mongo(product_obj.dict())
+    await db.products.insert_one(prepared_data)
+    return product_obj
+
+@api_router.get("/products", response_model=List[Product])
+async def get_products(category: Optional[str] = None, active_only: bool = True):
+    query = {}
+    if category:
+        query["category"] = category
+    if active_only:
+        query["is_active"] = True
+    
+    products = await db.products.find(query).sort("created_at", -1).to_list(1000)
+    return [Product(**parse_from_mongo(product)) for product in products]
+
+@api_router.get("/products/{product_id}", response_model=Product)
+async def get_product(product_id: str):
+    product = await db.products.find_one({"id": product_id, "is_active": True})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return Product(**parse_from_mongo(product))
+
+@api_router.put("/products/{product_id}", response_model=Product)
+async def update_product(product_id: str, product_update: ProductCreate):
+    update_data = product_update.dict()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.products.update_one(
+        {"id": product_id},
+        {"$set": prepare_for_mongo(update_data)}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    updated_product = await db.products.find_one({"id": product_id})
+    return Product(**parse_from_mongo(updated_product))
+
+@api_router.delete("/products/{product_id}")
+async def delete_product(product_id: str):
+    result = await db.products.update_one(
+        {"id": product_id},
+        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"message": "Product deleted successfully"}
+
+# Cart endpoints
+@api_router.post("/cart/add")
+async def add_to_cart(item: CartItemCreate):
+    # Get product details
+    product = await db.products.find_one({"id": item.product_id, "is_active": True})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Check if item already in cart
+    existing_item = await db.cart_items.find_one({
+        "session_id": item.session_id,
+        "product_id": item.product_id,
+        "size": item.size,
+        "color": item.color
+    })
+    
+    if existing_item:
+        # Update quantity
+        new_quantity = existing_item["quantity"] + item.quantity
+        await db.cart_items.update_one(
+            {"id": existing_item["id"]},
+            {"$set": {"quantity": new_quantity}}
+        )
+        return {"message": "Cart updated successfully"}
+    else:
+        # Add new item
+        cart_item_dict = item.dict()
+        cart_item_obj = CartItem(
+            **cart_item_dict,
+            product_name=product["name"],
+            product_price=product["price"]
+        )
+        prepared_data = prepare_for_mongo(cart_item_obj.dict())
+        await db.cart_items.insert_one(prepared_data)
+        return {"message": "Item added to cart successfully", "item_id": cart_item_obj.id}
+
+@api_router.get("/cart/{session_id}")
+async def get_cart(session_id: str):
+    cart_items = await db.cart_items.find({"session_id": session_id}).to_list(1000)
+    return [CartItem(**parse_from_mongo(item)) for item in cart_items]
+
+@api_router.delete("/cart/{session_id}/item/{item_id}")
+async def remove_from_cart(session_id: str, item_id: str):
+    result = await db.cart_items.delete_one({"id": item_id, "session_id": session_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Cart item not found")
+    return {"message": "Item removed from cart"}
+
+@api_router.delete("/cart/{session_id}")
+async def clear_cart(session_id: str):
+    await db.cart_items.delete_many({"session_id": session_id})
+    return {"message": "Cart cleared successfully"}
+
+# Shop checkout endpoint
+@api_router.post("/shop/checkout")
+async def create_shop_checkout(request: ShopCheckoutRequest, http_request: Request):
+    try:
+        # Calculate total amount
+        total_amount = sum(item["price"] * item["quantity"] for item in request.items)
+        
+        # Generate order number
+        order_number = generate_order_number()
+        
+        # Create Stripe checkout session
+        host_url = str(http_request.base_url).rstrip('/')
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+        
+        success_url = f"{host_url}/shop/success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{host_url}/shop/cart"
+        
+        checkout_request = CheckoutSessionRequest(
+            amount=total_amount,
+            currency="usd",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "order_number": order_number,
+                "customer_email": request.customer_email,
+                "customer_name": request.customer_name,
+                "order_type": "merchandise"
+            }
+        )
+        
+        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create order record
+        order_create = OrderCreate(
+            customer_name=request.customer_name,
+            customer_email=request.customer_email,
+            customer_address=request.customer_address,
+            items=request.items
+        )
+        
+        order_dict = order_create.dict()
+        order_obj = Order(
+            **order_dict,
+            order_number=order_number,
+            total_amount=total_amount,
+            stripe_session_id=session.session_id
+        )
+        prepared_data = prepare_for_mongo(order_obj.dict())
+        await db.orders.insert_one(prepared_data)
+        
+        return {"checkout_url": session.url, "session_id": session.session_id, "order_number": order_number}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
+
+# Event endpoints (existing code)
 @api_router.post("/events", response_model=Event)
 async def create_event(event: EventCreate):
     event_dict = event.dict()
@@ -299,7 +632,7 @@ async def delete_event(event_id: str):
         raise HTTPException(status_code=404, detail="Event not found")
     return {"message": "Event deleted successfully"}
 
-# News & Updates endpoints
+# News & Updates endpoints (existing code)
 @api_router.post("/news", response_model=NewsPost)
 async def create_news_post(post: NewsPostCreate):
     news_dict = post.dict()
@@ -320,7 +653,7 @@ async def get_news_post(post_id: str):
         raise HTTPException(status_code=404, detail="News post not found")
     return NewsPost(**parse_from_mongo(post))
 
-# Newsletter endpoints
+# Newsletter endpoints (existing code)
 @api_router.post("/newsletters", response_model=Newsletter)
 async def create_newsletter(newsletter: NewsletterCreate):
     newsletter_dict = newsletter.dict()
@@ -388,7 +721,7 @@ async def get_newsletter_pdf(newsletter_id: str):
         filename=newsletter.get('title', 'newsletter') + '.pdf'
     )
 
-# Contact form endpoints
+# Contact form endpoints (existing code)
 @api_router.post("/contact")
 async def submit_contact_form(form: ContactFormCreate):
     contact_dict = form.dict()
@@ -402,7 +735,7 @@ async def get_contact_forms():
     forms = await db.contact_forms.find().sort("created_at", -1).to_list(1000)
     return [ContactForm(**parse_from_mongo(form)) for form in forms]
 
-# Newsletter subscription endpoints
+# Newsletter subscription endpoints (existing code)
 @api_router.post("/newsletter/subscribe")
 async def subscribe_newsletter(subscriber: NewsletterSubscriberCreate):
     # Check if already subscribed
@@ -421,7 +754,7 @@ async def get_newsletter_subscribers():
     subscribers = await db.newsletter_subscribers.find({"is_active": True}).to_list(1000)
     return [NewsletterSubscriber(**parse_from_mongo(sub)) for sub in subscribers]
 
-# Member endpoints
+# Member endpoints (existing code)
 @api_router.post("/members", response_model=Member)
 async def create_member(member: MemberCreate):
     # Check if member already exists
@@ -447,7 +780,7 @@ async def get_member(member_id: str):
         raise HTTPException(status_code=404, detail="Member not found")
     return Member(**parse_from_mongo(member))
 
-# Payment endpoints
+# Payment endpoints (existing code)
 @api_router.post("/payments/create-checkout-session")
 async def create_checkout_session(request: CheckoutRequest, http_request: Request):
     # Validate membership tier
