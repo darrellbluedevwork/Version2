@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ShoppingCart } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,6 +10,8 @@ const Header = () => {
     { name: 'Home', href: '/' },
     { name: 'Membership', href: '/membership' },
     { name: 'Events', href: '/events' },
+    { name: 'Documents', href: '/documents' },
+    { name: 'Shop', href: '/shop' },
     { name: 'News & Updates', href: '/news' },
     { name: 'Newsletter', href: '/newsletter' },
     { name: 'Contact', href: '/contact' },
@@ -33,7 +35,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex space-x-6">
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -49,14 +51,25 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-700 hover:text-red-600 transition-colors"
+          {/* Cart Icon */}
+          <div className="flex items-center space-x-4">
+            <Link 
+              to="/shop/cart" 
+              className="relative text-gray-700 hover:text-red-600 transition-colors"
             >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+              <ShoppingCart size={24} />
+              {/* Cart badge could be added here */}
+            </Link>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="text-gray-700 hover:text-red-600 transition-colors"
+              >
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -76,6 +89,13 @@ const Header = () => {
                   {item.name}
                 </Link>
               ))}
+              <Link
+                to="/shop/cart"
+                onClick={() => setIsMenuOpen(false)}
+                className="block text-sm font-medium text-gray-700 hover:text-red-600"
+              >
+                Shopping Cart
+              </Link>
             </div>
           </nav>
         )}

@@ -10,6 +10,10 @@ import NewsPage from "./pages/NewsPage";
 import NewsletterPage from "./pages/NewsletterPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
+import DocumentsPage from "./pages/DocumentsPage";
+import ShopPage from "./pages/ShopPage";
+import ProductDetailsPage from "./pages/ProductDetailsPage";
+import CartPage from "./pages/CartPage";
 import MembershipSuccessPage from "./pages/MembershipSuccessPage";
 import AdminPage from "./pages/AdminPage";
 
@@ -32,6 +36,10 @@ function App() {
             <Route path="/newsletter" element={<NewsletterPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/events/:eventId" element={<EventDetailsPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/shop/product/:productId" element={<ProductDetailsPage />} />
+            <Route path="/shop/cart" element={<CartPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
