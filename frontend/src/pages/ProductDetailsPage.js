@@ -230,16 +230,30 @@ const ProductDetailsPage = () => {
                 )}
               </div>
 
-              {/* Add to Cart */}
+              {/* Add to Cart / Shop on Printful */}
               <div className="pt-6">
-                <Button 
-                  className="w-full bg-red-600 hover:bg-red-700 text-lg py-6"
-                  onClick={addToCart}
-                  disabled={product.stock_quantity === 0}
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  Add to Cart - ${(product.price * quantity).toFixed(2)}
-                </Button>
+                {product.printful_url ? (
+                  <a 
+                    href={product.printful_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <Button className="w-full bg-red-600 hover:bg-red-700 text-lg py-6">
+                      <ExternalLink className="w-5 h-5 mr-2" />
+                      Shop on Printful - ${(product.price * quantity).toFixed(2)}
+                    </Button>
+                  </a>
+                ) : (
+                  <Button 
+                    className="w-full bg-red-600 hover:bg-red-700 text-lg py-6"
+                    onClick={addToCart}
+                    disabled={product.stock_quantity === 0}
+                  >
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Add to Cart - ${(product.price * quantity).toFixed(2)}
+                  </Button>
+                )}
               </div>
 
               {/* Product Features */}
