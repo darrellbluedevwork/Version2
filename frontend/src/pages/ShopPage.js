@@ -324,14 +324,18 @@ const ShopPage = () => {
         <div className="container text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Shop?</h2>
           <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
-            Browse our collection and find the perfect ICAA merchandise to show your alumni pride.
+            Browse our collection and find the perfect ICAA merchandise to show your alumni pride. All purchases are processed through our secure Printful store.
           </p>
-          <Link to="/shop/cart">
+          <a 
+            href="https://icaa-merch.printful.me/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
             <Button className="bg-white text-red-600 hover:bg-gray-100 px-8 py-3 text-lg">
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              View Your Cart
+              <ExternalLink className="w-5 h-5 mr-2" />
+              Visit ICAA Store
             </Button>
-          </Link>
+          </a>
         </div>
       </section>
     </div>
