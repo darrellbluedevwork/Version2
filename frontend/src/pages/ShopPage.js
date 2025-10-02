@@ -313,14 +313,30 @@ const ShopPage = () => {
                           View Details
                         </Button>
                       </Link>
-                      <Button 
-                        className="bg-red-600 hover:bg-red-700"
-                        onClick={() => addToCart(product.id)}
-                        disabled={product.stock_quantity === 0}
-                        data-testid={`add-to-cart-${product.id}`}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
+                      {product.printful_url ? (
+                        <a 
+                          href={product.printful_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex-1"
+                        >
+                          <Button 
+                            className="bg-red-600 hover:bg-red-700 w-full"
+                            data-testid={`shop-printful-${product.id}`}
+                          >
+                            Shop on Printful
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button 
+                          className="bg-red-600 hover:bg-red-700"
+                          onClick={() => addToCart(product.id)}
+                          disabled={product.stock_quantity === 0}
+                          data-testid={`add-to-cart-${product.id}`}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
