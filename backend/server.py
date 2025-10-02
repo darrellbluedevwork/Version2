@@ -122,6 +122,7 @@ class Product(BaseModel):
     sizes_available: Optional[List[str]] = None  # For apparel
     colors_available: Optional[List[str]] = None
     stock_quantity: int = 0
+    printful_url: Optional[str] = None  # Link to Printful product page
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
