@@ -136,6 +136,7 @@ class ProductCreate(BaseModel):
     sizes_available: Optional[List[str]] = None
     colors_available: Optional[List[str]] = None
     stock_quantity: Optional[int] = 0
+    printful_url: Optional[str] = None
 
 class CartItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
