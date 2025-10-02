@@ -37,7 +37,21 @@ const ProductDetailsPage = () => {
       }
     } catch (err) {
       console.error('Error fetching product:', err);
-      setError('Failed to load product details');
+      // Try to find product in sample data as fallback
+      const sampleProduct = sampleProducts.find(p => p.id === productId);
+      if (sampleProduct) {
+        setProduct(sampleProduct);
+        // Set default selections for sample product
+        if (sampleProduct.sizes_available && sampleProduct.sizes_available.length > 0) {
+          setSelectedSize(sampleProduct.sizes_available[0]);
+        }
+        if (sampleProduct.colors_available && sampleProduct.colors_available.length > 0) {
+          setSelectedColor(sampleProduct.colors_available[0]);
+        }
+        setError(null); // Clear error since we found the product in samples
+      } else {
+        setError('Product not found');
+      }
     } finally {
       setLoading(false);
     }
