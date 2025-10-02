@@ -517,6 +517,13 @@ class ICAABackendTester:
         self.test_create_paid_checkout_session()
         self.test_checkout_status()
         
+        # Test product endpoints (Printful integration focus)
+        print("\n🛍️  Testing Product/Printful Integration:")
+        self.test_get_products()
+        self.test_get_specific_product()
+        self.test_key_products_data_integrity()
+        self.test_products_filtering()
+        
         # Print summary
         print("\n" + "=" * 50)
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
