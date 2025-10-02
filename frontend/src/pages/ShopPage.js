@@ -324,6 +324,7 @@ const ShopPage = () => {
                             className="bg-red-600 hover:bg-red-700 w-full"
                             data-testid={`shop-printful-${product.id}`}
                           >
+                            <ExternalLink className="w-4 h-4 mr-2" />
                             Shop on Printful
                           </Button>
                         </a>
