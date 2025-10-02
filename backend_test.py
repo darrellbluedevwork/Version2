@@ -321,6 +321,168 @@ class ICAABackendTester:
             self.log_test("Get Checkout Status", False, None, str(e))
             return False
 
+    def test_get_products(self):
+        """Test getting all products and verify printful_url field"""
+        try:
+            response = requests.get(f"{self.api_url}/products")
+            success = response.status_code == 200
+            
+            if success:
+                products = response.json()
+                print(f"   Found {len(products)} products")
+                
+                # Verify all products have printful_url field populated
+                products_without_printful_url = []
+                for product in products:
+                    if not product.get('printful_url'):
+                        products_without_printful_url.append(product.get('name', 'Unknown'))
+                
+                if products_without_printful_url:
+                    error_msg = f"Products missing printful_url: {', '.join(products_without_printful_url)}"
+                    self.log_test("Get Products - Printful URL Check", False, response.status_code, error_msg)
+                    return False
+                else:
+                    print(f"   ✅ All products have printful_url field populated")
+                    
+                # Store product IDs for individual testing
+                self.created_ids['product_ids'] = [p.get('id') for p in products]
+                self.created_ids['products_data'] = products
+            
+            self.log_test("Get Products", success, response.status_code,
+                         None if success else response.text,
+                         f"Found {len(products)} products, all with printful_url" if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Get Products", False, None, str(e))
+            return False
+
+    def test_get_specific_product(self):
+        """Test getting specific products and verify printful_url is returned"""
+        if 'product_ids' not in self.created_ids or not self.created_ids['product_ids']:
+            self.log_test("Get Specific Product", False, None, "No product IDs available")
+            return False
+            
+        try:
+            # Test first product
+            product_id = self.created_ids['product_ids'][0]
+            response = requests.get(f"{self.api_url}/products/{product_id}")
+            success = response.status_code == 200
+            
+            if success:
+                product = response.json()
+                if not product.get('printful_url'):
+                    error_msg = f"Product {product.get('name', 'Unknown')} missing printful_url"
+                    self.log_test("Get Specific Product - Printful URL Check", False, response.status_code, error_msg)
+                    return False
+                else:
+                    print(f"   ✅ Product '{product.get('name')}' has printful_url: {product.get('printful_url')}")
+            
+            self.log_test("Get Specific Product", success, response.status_code,
+                         None if success else response.text,
+                         response.json() if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Get Specific Product", False, None, str(e))
+            return False
+
+    def test_key_products_data_integrity(self):
+        """Test specific key products for data integrity"""
+        if 'products_data' not in self.created_ids:
+            self.log_test("Key Products Data Integrity", False, None, "No products data available")
+            return False
+            
+        try:
+            products = self.created_ids['products_data']
+            
+            # Expected key products with their printful URLs
+            expected_products = {
+                "ICAA Logo Hat": "https://icaa-merch.printful.me/product/icaa-logo-hat-white",
+                "Black Hoodie with ICAA Logo": "https://icaa-merch.printful.me/product/icaa-logo-eco-hoodie-black",
+                "ICAA Water Bottle": "https://icaa-merch.printful.me/product/icaa-logo-wide-mouth-plastic-water-bottle"
+            }
+            
+            found_products = {}
+            missing_products = []
+            incorrect_urls = []
+            
+            # Check each expected product
+            for expected_name, expected_url in expected_products.items():
+                found = False
+                for product in products:
+                    product_name = product.get('name', '')
+                    if expected_name in product_name or product_name in expected_name:
+                        found_products[expected_name] = product
+                        found = True
+                        
+                        # Verify printful_url matches expected
+                        actual_url = product.get('printful_url', '')
+                        if actual_url != expected_url:
+                            incorrect_urls.append(f"{product_name}: expected {expected_url}, got {actual_url}")
+                        else:
+                            print(f"   ✅ {product_name}: printful_url correct")
+                        break
+                
+                if not found:
+                    missing_products.append(expected_name)
+            
+            # Report results
+            success = len(missing_products) == 0 and len(incorrect_urls) == 0
+            
+            if missing_products:
+                error_msg = f"Missing products: {', '.join(missing_products)}"
+                self.log_test("Key Products Data Integrity", False, 200, error_msg)
+                return False
+            
+            if incorrect_urls:
+                error_msg = f"Incorrect URLs: {'; '.join(incorrect_urls)}"
+                self.log_test("Key Products Data Integrity", False, 200, error_msg)
+                return False
+            
+            self.log_test("Key Products Data Integrity", success, 200, None,
+                         f"All {len(expected_products)} key products found with correct printful_urls")
+            return success
+            
+        except Exception as e:
+            self.log_test("Key Products Data Integrity", False, None, str(e))
+            return False
+
+    def test_products_filtering(self):
+        """Test products endpoint filtering functionality"""
+        try:
+            # Test category filtering
+            response = requests.get(f"{self.api_url}/products?category=apparel")
+            success = response.status_code == 200
+            
+            if success:
+                products = response.json()
+                print(f"   Found {len(products)} apparel products")
+                
+                # Verify all returned products are apparel category
+                non_apparel = [p.get('name') for p in products if p.get('category') != 'apparel']
+                if non_apparel:
+                    error_msg = f"Non-apparel products in apparel filter: {', '.join(non_apparel)}"
+                    self.log_test("Products Filtering - Category", False, response.status_code, error_msg)
+                    return False
+            
+            # Test active_only filtering
+            response2 = requests.get(f"{self.api_url}/products?active_only=false")
+            success2 = response2.status_code == 200
+            
+            if success2:
+                all_products = response2.json()
+                print(f"   Found {len(all_products)} total products (including inactive)")
+            
+            overall_success = success and success2
+            self.log_test("Products Filtering", overall_success, 
+                         response.status_code if success else response2.status_code,
+                         None if overall_success else "Filtering tests failed",
+                         f"Category and active filtering working" if overall_success else None)
+            return overall_success
+            
+        except Exception as e:
+            self.log_test("Products Filtering", False, None, str(e))
+            return False
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting ICAA Backend API Tests")
