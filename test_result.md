@@ -426,8 +426,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Group Messaging System comprehensive testing completed"
-  stuck_tasks: []
+    - "WebSocket Real-time Messaging Connection"
+  stuck_tasks:
+    - "WebSocket Real-time Messaging Connection"
   test_all: false
   test_priority: "high_first"
 
