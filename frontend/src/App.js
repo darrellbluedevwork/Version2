@@ -52,6 +52,7 @@ function App() {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/users/:userId" element={<UserProfilePage />} />
             <Route path="/users/:userId/edit" element={<EditProfilePage />} />
+            <Route path="/chat" element={<ChatPage />} />
           </Routes>
         </main>
         <Footer />
