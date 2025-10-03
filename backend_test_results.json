@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-10-02T05:12:01.984781",
-  "total_tests": 18,
-  "passed_tests": 18,
+  "timestamp": "2025-10-03T04:29:08.738001",
+  "total_tests": 11,
+  "passed_tests": 11,
   "success_rate": 100.0,
   "test_results": [
     {
@@ -14,363 +14,128 @@
       }
     },
     {
-      "test": "Create News Post",
+      "test": "Create User",
       "success": true,
       "status_code": 200,
       "error": null,
       "response_data": {
-        "id": "af3b7359-6fdc-4dd8-b9c9-3619540bec99",
-        "title": "Test News Article",
-        "content": "This is the full content of the test news article for ICAA testing.",
-        "excerpt": "This is a test news article excerpt",
-        "author": "Test Author",
-        "published_date": "2025-10-02T05:12:00.317529Z",
-        "is_published": true
-      }
-    },
-    {
-      "test": "Get News Posts",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Found 5 articles"
-    },
-    {
-      "test": "Get Specific News Post",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "id": "af3b7359-6fdc-4dd8-b9c9-3619540bec99",
-        "title": "Test News Article",
-        "content": "This is the full content of the test news article for ICAA testing.",
-        "excerpt": "This is a test news article excerpt",
-        "author": "Test Author",
-        "published_date": "2025-10-02T05:12:00.317529Z",
-        "is_published": true
-      }
-    },
-    {
-      "test": "Submit Contact Form",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "message": "Contact form submitted successfully",
-        "id": "1c927bd4-36c3-45ea-9602-fc47edc03814"
-      }
-    },
-    {
-      "test": "Get Contact Forms",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Found 3 contact forms"
-    },
-    {
-      "test": "Newsletter Subscription",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "message": "Successfully subscribed to newsletter",
-        "id": "2954e44d-5dbc-4d97-8048-fcc3be27ab83"
-      }
-    },
-    {
-      "test": "Get Newsletter Subscribers",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Found 3 subscribers"
-    },
-    {
-      "test": "Create Free Member",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "id": "cd944263-d0ae-47b0-afc9-a747b858813f",
-        "name": "Test Free Member",
-        "email": "free_member_051200@example.com",
-        "membership_tier": "free",
-        "payment_status": "pending",
-        "created_at": "2025-10-02T05:12:00.801325Z",
-        "updated_at": "2025-10-02T05:12:00.801328Z"
-      }
-    },
-    {
-      "test": "Get Members",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Found 4 members"
-    },
-    {
-      "test": "Get Specific Member",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "id": "cd944263-d0ae-47b0-afc9-a747b858813f",
-        "name": "Test Free Member",
-        "email": "free_member_051200@example.com",
-        "membership_tier": "free",
-        "payment_status": "pending",
-        "created_at": "2025-10-02T05:12:00.801325Z",
-        "updated_at": "2025-10-02T05:12:00.801328Z"
-      }
-    },
-    {
-      "test": "Create Free Checkout Session",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "message": "Free membership created successfully",
-        "member_id": "fd32ab70-ebc4-43f0-9718-2ea2e2557968"
-      }
-    },
-    {
-      "test": "Create Paid Checkout Session",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "checkout_url": "https://checkout.stripe.com/c/pay/cs_test_a1MXSF0ASwUs0JObdezuU4TatE6oUOrAZABYI2yKjgaNu4286YF0A5ty9h#fidkdWxOYHwnPyd1blpxYHZxWjA0V2xNTTNGQU9iY0w8d1VifVUyPXZSaEc8YUpOUTFgdzdEZkNyPTNOZFJSaWNpQ19HfWJwTXJWUDxsY1BJYTNqUW01NW1XYV83VmNjMGgyPE1zPEh0N3QxNTV%2FR0BiYnd2UicpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZjY2NjY2MnKSdpZHxqcHFRfHVgJz8ndmxrYmlgWmxxYGgnKSdga2RnaWBVaWRmYG1qaWFgd3YnP3F3cGB4JSUl",
-        "session_id": "cs_test_a1MXSF0ASwUs0JObdezuU4TatE6oUOrAZABYI2yKjgaNu4286YF0A5ty9h"
-      }
-    },
-    {
-      "test": "Get Checkout Status",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "status": "open",
-        "payment_status": "unpaid",
-        "amount_total": 1000,
-        "currency": "usd"
-      }
-    },
-    {
-      "test": "Get Products",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Found 7 products, all with printful_url"
-    },
-    {
-      "test": "Get Specific Product",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "id": "0a583195-35df-4bd9-a4ce-b295cc58267b",
-        "name": "415ndearborn Hoodie",
-        "description": "A black hoodie with a graphic design and 415NDEARBORN text.",
-        "category": "apparel",
-        "price": 55.0,
-        "image_url": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": [
-          "S",
-          "M",
-          "L",
-          "XL",
-          "XXL"
+        "id": "4596bc11-06e0-4788-b1d3-9f8c1069c006",
+        "name": "Alice Thompson",
+        "email": "alice.thompson_042908@example.com",
+        "password_hash": null,
+        "bio": "Software engineer passionate about community building and technology innovation.",
+        "interests": [
+          "Web Development",
+          "Machine Learning",
+          "Community Building",
+          "Mentorship"
         ],
-        "colors_available": [
-          "Black"
-        ],
-        "stock_quantity": 20,
-        "printful_url": "https://icaa-merch.printful.me/product/415ndearborn-v2-premium-eco-hoodie",
-        "is_active": true,
-        "created_at": "2025-10-02T05:09:53.188631Z",
-        "updated_at": "2025-10-02T05:09:53.188634Z"
+        "birthday": "1995-03-15",
+        "profile_photo_url": null,
+        "cohort": "2024",
+        "program_track": "Full Stack Development",
+        "is_verified_alumni": false,
+        "membership_tier": "active_monthly",
+        "payment_status": "pending",
+        "created_at": "2025-10-03T04:29:08.273746Z",
+        "updated_at": "2025-10-03T04:29:08.273749Z"
       }
     },
     {
-      "test": "Key Products Data Integrity",
+      "test": "Get All Users",
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "All 3 key products found with correct printful_urls"
+      "response_data": "Found 4 users"
     },
     {
-      "test": "Products Filtering",
+      "test": "Get User 54bee40c-826f-4aa5-b770-2242e397086f",
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "Category and active filtering working"
+      "response_data": "John Smith"
+    },
+    {
+      "test": "Get User bea1e00c-fcba-4b26-9a1d-9692aaebd841",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Sarah Johnson"
+    },
+    {
+      "test": "Get User 09fee5f9-2ad1-4c96-a756-75501616a704",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Marcus Williams"
+    },
+    {
+      "test": "Update User Profile",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "id": "4596bc11-06e0-4788-b1d3-9f8c1069c006",
+        "name": "Alice Thompson",
+        "email": "alice.thompson_042908@example.com",
+        "password_hash": null,
+        "bio": "Updated bio: Senior software engineer with expertise in full-stack development and team leadership.",
+        "interests": [
+          "Advanced Web Development",
+          "Team Leadership",
+          "Open Source",
+          "AI/ML"
+        ],
+        "birthday": "1995-03-15",
+        "profile_photo_url": null,
+        "cohort": "2024",
+        "program_track": "Advanced Full Stack Development",
+        "is_verified_alumni": false,
+        "membership_tier": "active_monthly",
+        "payment_status": "pending",
+        "created_at": "2025-10-03T04:29:08.273746Z",
+        "updated_at": "2025-10-03T04:29:08.503225Z"
+      }
+    },
+    {
+      "test": "Profile Data Integrity",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "All profile fields maintain data integrity"
+    },
+    {
+      "test": "Get User Events - 54bee40c-826f-4aa5-b770-2242e397086f",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 0 events"
+    },
+    {
+      "test": "Get User Events - bea1e00c-fcba-4b26-9a1d-9692aaebd841",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 0 events"
+    },
+    {
+      "test": "Profile Photo Upload",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "message": "Profile photo uploaded successfully",
+        "photo_url": "/uploads/profile_photos/4596bc11-06e0-4788-b1d3-9f8c1069c006_9059b067-c7ba-4383-b8b1-2b062a5eb77c.png"
+      }
     }
   ],
   "created_ids": {
-    "news_id": "af3b7359-6fdc-4dd8-b9c9-3619540bec99",
-    "contact_id": "1c927bd4-36c3-45ea-9602-fc47edc03814",
-    "subscriber_id": "2954e44d-5dbc-4d97-8048-fcc3be27ab83",
-    "member_id": "cd944263-d0ae-47b0-afc9-a747b858813f",
-    "session_id": "cs_test_a1MXSF0ASwUs0JObdezuU4TatE6oUOrAZABYI2yKjgaNu4286YF0A5ty9h",
-    "product_ids": [
-      "0a583195-35df-4bd9-a4ce-b295cc58267b",
-      "0bff2ef4-872c-4b19-ab74-932057ffa03c",
-      "4f36655c-8009-4907-a0b4-2d022a1a0212",
-      "192ff473-6b29-4b31-90b3-acaf5a670fcf",
-      "4e0bd03e-c98b-4d05-b5a1-059ef16885e7",
-      "0368b18c-edcf-438a-b6a6-47680958f994",
-      "e7a39b52-d58f-4f90-96a6-ae46e333366b"
-    ],
-    "products_data": [
-      {
-        "id": "0a583195-35df-4bd9-a4ce-b295cc58267b",
-        "name": "415ndearborn Hoodie",
-        "description": "A black hoodie with a graphic design and 415NDEARBORN text.",
-        "category": "apparel",
-        "price": 55.0,
-        "image_url": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": [
-          "S",
-          "M",
-          "L",
-          "XL",
-          "XXL"
-        ],
-        "colors_available": [
-          "Black"
-        ],
-        "stock_quantity": 20,
-        "printful_url": "https://icaa-merch.printful.me/product/415ndearborn-v2-premium-eco-hoodie",
-        "is_active": true,
-        "created_at": "2025-10-02T05:09:53.188631Z",
-        "updated_at": "2025-10-02T05:09:53.188634Z"
-      },
-      {
-        "id": "0bff2ef4-872c-4b19-ab74-932057ffa03c",
-        "name": "415ndearborn Shirt",
-        "description": "A black t-shirt with a graphic design and 415NDEARBORN text.",
-        "category": "apparel",
-        "price": 25.0,
-        "image_url": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": [
-          "S",
-          "M",
-          "L",
-          "XL",
-          "XXL"
-        ],
-        "colors_available": [
-          "Black"
-        ],
-        "stock_quantity": 40,
-        "printful_url": "https://icaa-merch.printful.me/product/415ndearborn-v2-mens-premium-heavyweight-tee",
-        "is_active": true,
-        "created_at": "2025-10-02T05:09:46.376215Z",
-        "updated_at": "2025-10-02T05:09:46.376217Z"
-      },
-      {
-        "id": "4f36655c-8009-4907-a0b4-2d022a1a0212",
-        "name": "Mens White Premium Polo",
-        "description": "A white polo shirt with an embroidered ICAA logo. Professional quality for business casual occasions.",
-        "category": "apparel",
-        "price": 30.0,
-        "image_url": "https://images.unsplash.com/photo-1618354691321-1ce8c1b6c5b1?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": [
-          "S",
-          "M",
-          "L",
-          "XL",
-          "XXL"
-        ],
-        "colors_available": [
-          "White"
-        ],
-        "stock_quantity": 25,
-        "printful_url": "https://icaa-merch.printful.me/product/mens-premium-polo",
-        "is_active": true,
-        "created_at": "2025-09-28T23:14:16.700632Z",
-        "updated_at": "2025-10-02T05:09:38.481257Z"
-      },
-      {
-        "id": "192ff473-6b29-4b31-90b3-acaf5a670fcf",
-        "name": "Mens Black Premium Polo",
-        "description": "A black polo shirt with an embroidered ICAA logo. Professional quality for business casual occasions.",
-        "category": "apparel",
-        "price": 30.0,
-        "image_url": "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": [
-          "S",
-          "M",
-          "L",
-          "XL",
-          "XXL"
-        ],
-        "colors_available": [
-          "Black"
-        ],
-        "stock_quantity": 25,
-        "printful_url": "https://icaa-merch.printful.me/product/icaa-logo-mens-premium-polo-copy",
-        "is_active": true,
-        "created_at": "2025-09-28T23:14:05.227773Z",
-        "updated_at": "2025-10-02T05:09:31.228601Z"
-      },
-      {
-        "id": "4e0bd03e-c98b-4d05-b5a1-059ef16885e7",
-        "name": "ICAA Water Bottle",
-        "description": "Plastic water bottle featuring the ICAA logo. Perfect for staying hydrated while representing your alumni pride.",
-        "category": "accessories",
-        "price": 21.0,
-        "image_url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": null,
-        "colors_available": [
-          "Clear"
-        ],
-        "stock_quantity": 100,
-        "printful_url": "https://icaa-merch.printful.me/product/icaa-logo-wide-mouth-plastic-water-bottle",
-        "is_active": true,
-        "created_at": "2025-09-28T23:13:42.782824Z",
-        "updated_at": "2025-10-02T05:09:21.950854Z"
-      },
-      {
-        "id": "0368b18c-edcf-438a-b6a6-47680958f994",
-        "name": "Black Hoodie with ICAA Logo",
-        "description": "A black hoodie with a white ICAA logo on the chest. Premium quality cotton blend for comfort and durability.",
-        "category": "apparel",
-        "price": 55.0,
-        "image_url": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": [
-          "S",
-          "M",
-          "L",
-          "XL",
-          "XXL"
-        ],
-        "colors_available": [
-          "Black"
-        ],
-        "stock_quantity": 30,
-        "printful_url": "https://icaa-merch.printful.me/product/icaa-logo-eco-hoodie-black",
-        "is_active": true,
-        "created_at": "2025-09-28T23:13:28.906429Z",
-        "updated_at": "2025-10-02T05:09:13.580803Z"
-      },
-      {
-        "id": "e7a39b52-d58f-4f90-96a6-ae46e333366b",
-        "name": "ICAA Logo Hat",
-        "description": "A white cap with the ICAA logo embroidered. Show your alumni pride with this premium quality hat.",
-        "category": "apparel",
-        "price": 26.5,
-        "image_url": "https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?w=500&h=500&fit=crop&crop=center",
-        "sizes_available": [
-          "One Size"
-        ],
-        "colors_available": [
-          "White"
-        ],
-        "stock_quantity": 50,
-        "printful_url": "https://icaa-merch.printful.me/product/icaa-logo-hat-white",
-        "is_active": true,
-        "created_at": "2025-09-28T23:13:16.729670Z",
-        "updated_at": "2025-10-02T05:09:05.808859Z"
-      }
+    "new_user_id": "4596bc11-06e0-4788-b1d3-9f8c1069c006",
+    "existing_user_ids": [
+      "54bee40c-826f-4aa5-b770-2242e397086f",
+      "bea1e00c-fcba-4b26-9a1d-9692aaebd841",
+      "09fee5f9-2ad1-4c96-a756-75501616a704",
+      "4596bc11-06e0-4788-b1d3-9f8c1069c006"
     ]
   }
 }
