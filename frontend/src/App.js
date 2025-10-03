@@ -48,6 +48,9 @@ function App() {
             <Route path="/shop/product/:productId" element={<ProductDetailsPage />} />
             <Route path="/shop/cart" element={<CartPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/users" element={<UsersPage />} />
+            <Route path="/users/:userId" element={<UserProfilePage />} />
+            <Route path="/users/:userId/edit" element={<EditProfilePage />} />
           </Routes>
         </main>
         <Footer />
