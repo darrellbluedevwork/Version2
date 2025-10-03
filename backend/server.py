@@ -820,6 +820,105 @@ async def get_member(member_id: str):
         raise HTTPException(status_code=404, detail="Member not found")
     return Member(**parse_from_mongo(member))
 
+# User Profile endpoints
+@api_router.post("/users", response_model=User)
+async def create_user(user: UserCreate):
+    # Check if user already exists
+    existing = await db.users.find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+    
+    user_dict = user.dict()
+    # For now, skip password hashing - will implement proper auth later
+    if 'password' in user_dict:
+        user_dict.pop('password')
+    
+    user_obj = User(**user_dict)
+    prepared_data = prepare_for_mongo(user_obj.dict())
+    await db.users.insert_one(prepared_data)
+    return user_obj
+
+@api_router.get("/users", response_model=List[User])
+async def get_users():
+    users = await db.users.find().to_list(1000)
+    return [User(**parse_from_mongo(user)) for user in users]
+
+@api_router.get("/users/{user_id}", response_model=User)
+async def get_user(user_id: str):
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return User(**parse_from_mongo(user))
+
+@api_router.put("/users/{user_id}", response_model=User)
+async def update_user(user_id: str, user_update: UserUpdate):
+    update_data = user_update.dict(exclude_unset=True)
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        result = await db.users.update_one(
+            {"id": user_id},
+            {"$set": prepare_for_mongo(update_data)}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+    
+    updated_user = await db.users.find_one({"id": user_id})
+    return User(**parse_from_mongo(updated_user))
+
+@api_router.get("/users/{user_id}/events", response_model=List[Dict])
+async def get_user_events(user_id: str):
+    # Get user's event registrations
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find events where user is registered
+    registrations = await db.event_registrations.find({"member_email": user["email"]}).to_list(1000)
+    
+    events_with_status = []
+    for registration in registrations:
+        event = await db.events.find_one({"id": registration["event_id"]})
+        if event:
+            event_data = Event(**parse_from_mongo(event))
+            events_with_status.append({
+                "event": event_data.dict(),
+                "registration_status": registration["registration_status"],
+                "registered_at": registration["registered_at"]
+            })
+    
+    return events_with_status
+
+@api_router.post("/users/{user_id}/upload-photo")
+async def upload_profile_photo(user_id: str, file: UploadFile = File(...)):
+    # Validate file type
+    allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    file_extension = Path(file.filename).suffix.lower()
+    if file_extension not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"File type {file_extension} not allowed")
+    
+    # Create profile photos directory
+    PROFILE_PHOTOS_DIR = ROOT_DIR / "uploads" / "profile_photos"
+    PROFILE_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Generate unique filename
+    filename = f"{user_id}_{uuid.uuid4()}{file_extension}"
+    file_path = PROFILE_PHOTOS_DIR / filename
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Update user profile with photo URL
+    photo_url = f"/uploads/profile_photos/{filename}"
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"profile_photo_url": photo_url, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Profile photo uploaded successfully", "photo_url": photo_url}
+
 # Payment endpoints (existing code)
 @api_router.post("/payments/create-checkout-session")
 async def create_checkout_session(request: CheckoutRequest, http_request: Request):
