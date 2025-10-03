@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-10-03T04:44:38.008662",
+  "timestamp": "2025-10-03T04:45:38.482423",
   "total_tests": 15,
-  "passed_tests": 14,
-  "success_rate": 93.33333333333333,
+  "passed_tests": 15,
+  "success_rate": 100.0,
   "test_results": [
     {
       "test": "Root API Endpoint",
@@ -18,14 +18,14 @@
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "Found 0 rooms"
+      "response_data": "Found 1 rooms"
     },
     {
       "test": "Get Chat Rooms - Sarah Johnson",
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "Found 0 rooms"
+      "response_data": "Found 1 rooms"
     },
     {
       "test": "Get Chat Rooms - Marcus Williams",
@@ -40,7 +40,7 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "id": "131e10b1-f79d-40f3-aa62-fd11199f3ff6",
+        "id": "18ad1bac-2703-4bff-b6a6-8a802529cb46",
         "name": "Alumni Networking Hub",
         "description": "A space for alumni to network and share opportunities",
         "room_type": "custom",
@@ -55,16 +55,16 @@
         ],
         "is_active": true,
         "created_by": "54bee40c-826f-4aa5-b770-2242e397086f",
-        "created_at": "2025-10-03T04:44:37.372396Z",
-        "updated_at": "2025-10-03T04:44:37.372400Z"
+        "created_at": "2025-10-03T04:45:36.444916Z",
+        "updated_at": "2025-10-03T04:45:36.444920Z"
       }
     },
     {
       "test": "Get Room Messages",
-      "success": false,
-      "status_code": null,
-      "error": "No room IDs available for testing",
-      "response_data": null
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 0 messages, endpoint working correctly"
     },
     {
       "test": "Get Direct Messages",
@@ -108,7 +108,7 @@
       "error": null,
       "response_data": {
         "message": "Image uploaded successfully",
-        "image_url": "/uploads/chat_images/54bee40c-826f-4aa5-b770-2242e397086f_df3f4dbb-9163-4e06-bd06-6eefe230f336.png"
+        "image_url": "/uploads/chat_images/54bee40c-826f-4aa5-b770-2242e397086f_f2a1d060-71cb-4624-b69e-ce73061fa85a.png"
       }
     },
     {
@@ -134,7 +134,13 @@
     }
   ],
   "created_ids": {
-    "custom_room_id": "131e10b1-f79d-40f3-aa62-fd11199f3ff6",
-    "chat_image_url": "/uploads/chat_images/54bee40c-826f-4aa5-b770-2242e397086f_df3f4dbb-9163-4e06-bd06-6eefe230f336.png"
+    "user_54bee40c-826f-4aa5-b770-2242e397086f_rooms": [
+      "131e10b1-f79d-40f3-aa62-fd11199f3ff6"
+    ],
+    "user_bea1e00c-fcba-4b26-9a1d-9692aaebd841_rooms": [
+      "131e10b1-f79d-40f3-aa62-fd11199f3ff6"
+    ],
+    "custom_room_id": "18ad1bac-2703-4bff-b6a6-8a802529cb46",
+    "chat_image_url": "/uploads/chat_images/54bee40c-826f-4aa5-b770-2242e397086f_f2a1d060-71cb-4624-b69e-ce73061fa85a.png"
   }
 }
