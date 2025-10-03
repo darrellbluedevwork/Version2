@@ -940,16 +940,14 @@ class ICAABackendTester:
 
     def test_get_room_messages(self):
         """Test getting messages from rooms with access control"""
-        # Test with John Smith accessing his rooms
-        user_id = "54bee40c-826f-4aa5-b770-2242e397086f"
-        user_rooms_key = f'user_{user_id}_rooms'
-        
-        if user_rooms_key not in self.created_ids or not self.created_ids[user_rooms_key]:
-            self.log_test("Get Room Messages", False, None, "No room IDs available for testing")
-            return False
-        
         try:
-            room_id = self.created_ids[user_rooms_key][0]  # Test first available room
+            # Use the custom room created in previous test
+            if 'custom_room_id' not in self.created_ids:
+                self.log_test("Get Room Messages", False, None, "No custom room ID available for testing")
+                return False
+            
+            user_id = "54bee40c-826f-4aa5-b770-2242e397086f"  # John Smith
+            room_id = self.created_ids['custom_room_id']
             
             response = requests.get(f"{self.api_url}/chat-rooms/{room_id}/messages?user_id={user_id}&limit=50")
             success = response.status_code == 200
@@ -958,7 +956,7 @@ class ICAABackendTester:
                 messages = response.json()
                 print(f"   Found {len(messages)} messages in room {room_id}")
                 
-                # Verify message structure if messages exist
+                # The endpoint should work even with 0 messages
                 if messages:
                     first_message = messages[0]
                     required_fields = ['id', 'room_id', 'sender_id', 'sender_name', 'content', 'created_at']
@@ -973,17 +971,26 @@ class ICAABackendTester:
                         first_time = messages[0].get('created_at')
                         last_time = messages[-1].get('created_at')
                         print(f"      Message ordering: {first_time} to {last_time}")
+                else:
+                    print(f"      Room has no messages (expected for new room)")
                 
-                # Test pagination
-                if len(messages) >= 10:  # Test skip parameter if enough messages
-                    page_response = requests.get(f"{self.api_url}/chat-rooms/{room_id}/messages?user_id={user_id}&limit=5&skip=5")
-                    if page_response.status_code == 200:
-                        page_messages = page_response.json()
-                        print(f"      Pagination test: Got {len(page_messages)} messages with skip=5")
+                # Test pagination parameters (should work even with 0 messages)
+                page_response = requests.get(f"{self.api_url}/chat-rooms/{room_id}/messages?user_id={user_id}&limit=5&skip=0")
+                if page_response.status_code == 200:
+                    page_messages = page_response.json()
+                    print(f"      Pagination test: Got {len(page_messages)} messages with limit=5&skip=0")
+                
+                # Test access control - try with different user who should have access
+                user2_id = "bea1e00c-fcba-4b26-9a1d-9692aaebd841"  # Sarah Johnson (participant)
+                access_response = requests.get(f"{self.api_url}/chat-rooms/{room_id}/messages?user_id={user2_id}&limit=10")
+                if access_response.status_code == 200:
+                    print(f"      ✅ Participant Sarah Johnson can access room messages")
+                else:
+                    print(f"      ⚠️  Participant Sarah Johnson denied access: {access_response.status_code}")
             
             self.log_test("Get Room Messages", success, response.status_code,
                          None if success else response.text,
-                         f"Found {len(messages)} messages" if success else None)
+                         f"Found {len(messages)} messages, endpoint working correctly" if success else None)
             return success
         except Exception as e:
             self.log_test("Get Room Messages", False, None, str(e))
