@@ -73,7 +73,12 @@ const ChatPage = () => {
       setCurrentUser(userData);
 
       // Initialize WebSocket connection
-      const newSocket = io(BACKEND_URL);
+      console.log('Connecting to WebSocket server at:', BACKEND_URL);
+      const newSocket = io(BACKEND_URL, {
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true
+      });
       setSocket(newSocket);
 
       // Socket event listeners
