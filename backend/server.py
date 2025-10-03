@@ -83,6 +83,7 @@ class UserUpdate(BaseModel):
     cohort: Optional[str] = None
     program_track: Optional[str] = None
     profile_photo_url: Optional[str] = None
+    is_verified_alumni: Optional[bool] = None
 
 # Messaging Models
 class ChatRoom(BaseModel):
