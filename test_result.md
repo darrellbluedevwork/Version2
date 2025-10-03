@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the User Profile Management system comprehensively including CRUD operations, profile data integrity, event history, and photo upload functionality"
+user_problem_statement: "Test the Group Messaging System backend comprehensively including chat room management, message operations, direct messaging, access control & security, and user status & file upload functionality"
 
 backend:
   - task: "POST /api/users - Create new users"
