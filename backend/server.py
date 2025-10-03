@@ -1692,9 +1692,9 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail=f"Webhook error: {str(e)}")
 
 # Include the router in the main app
-app.include_router(api_router)
+fastapi_app.include_router(api_router)
 
-app.add_middleware(
+fastapi_app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
