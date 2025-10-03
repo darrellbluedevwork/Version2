@@ -1456,9 +1456,14 @@ class ICAABackendTester:
 def main():
     tester = ICAABackendTester()
     
-    # Check if we should run user profile tests specifically
-    if len(sys.argv) > 1 and sys.argv[1] == "user_profile":
-        success = tester.run_user_profile_tests()
+    # Check if we should run specific test suites
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "user_profile":
+            success = tester.run_user_profile_tests()
+        elif sys.argv[1] == "messaging":
+            success = tester.run_messaging_system_tests()
+        else:
+            success = tester.run_all_tests()
     else:
         success = tester.run_all_tests()
     
