@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-10-03T04:29:08.738001",
-  "total_tests": 11,
-  "passed_tests": 11,
-  "success_rate": 100.0,
+  "timestamp": "2025-10-03T04:44:38.008662",
+  "total_tests": 15,
+  "passed_tests": 14,
+  "success_rate": 93.33333333333333,
   "test_results": [
     {
       "test": "Root API Endpoint",
@@ -14,128 +14,127 @@
       }
     },
     {
-      "test": "Create User",
+      "test": "Get Chat Rooms - John Smith",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 0 rooms"
+    },
+    {
+      "test": "Get Chat Rooms - Sarah Johnson",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 0 rooms"
+    },
+    {
+      "test": "Get Chat Rooms - Marcus Williams",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 0 rooms"
+    },
+    {
+      "test": "Create Custom Chat Room",
       "success": true,
       "status_code": 200,
       "error": null,
       "response_data": {
-        "id": "4596bc11-06e0-4788-b1d3-9f8c1069c006",
-        "name": "Alice Thompson",
-        "email": "alice.thompson_042908@example.com",
-        "password_hash": null,
-        "bio": "Software engineer passionate about community building and technology innovation.",
-        "interests": [
-          "Web Development",
-          "Machine Learning",
-          "Community Building",
-          "Mentorship"
+        "id": "131e10b1-f79d-40f3-aa62-fd11199f3ff6",
+        "name": "Alumni Networking Hub",
+        "description": "A space for alumni to network and share opportunities",
+        "room_type": "custom",
+        "cohort": null,
+        "program_track": null,
+        "participants": [
+          "54bee40c-826f-4aa5-b770-2242e397086f",
+          "bea1e00c-fcba-4b26-9a1d-9692aaebd841"
         ],
-        "birthday": "1995-03-15",
-        "profile_photo_url": null,
-        "cohort": "2024",
-        "program_track": "Full Stack Development",
-        "is_verified_alumni": false,
-        "membership_tier": "active_monthly",
-        "payment_status": "pending",
-        "created_at": "2025-10-03T04:29:08.273746Z",
-        "updated_at": "2025-10-03T04:29:08.273749Z"
-      }
-    },
-    {
-      "test": "Get All Users",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Found 4 users"
-    },
-    {
-      "test": "Get User 54bee40c-826f-4aa5-b770-2242e397086f",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "John Smith"
-    },
-    {
-      "test": "Get User bea1e00c-fcba-4b26-9a1d-9692aaebd841",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Sarah Johnson"
-    },
-    {
-      "test": "Get User 09fee5f9-2ad1-4c96-a756-75501616a704",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": "Marcus Williams"
-    },
-    {
-      "test": "Update User Profile",
-      "success": true,
-      "status_code": 200,
-      "error": null,
-      "response_data": {
-        "id": "4596bc11-06e0-4788-b1d3-9f8c1069c006",
-        "name": "Alice Thompson",
-        "email": "alice.thompson_042908@example.com",
-        "password_hash": null,
-        "bio": "Updated bio: Senior software engineer with expertise in full-stack development and team leadership.",
-        "interests": [
-          "Advanced Web Development",
-          "Team Leadership",
-          "Open Source",
-          "AI/ML"
+        "admins": [
+          "54bee40c-826f-4aa5-b770-2242e397086f"
         ],
-        "birthday": "1995-03-15",
-        "profile_photo_url": null,
-        "cohort": "2024",
-        "program_track": "Advanced Full Stack Development",
-        "is_verified_alumni": false,
-        "membership_tier": "active_monthly",
-        "payment_status": "pending",
-        "created_at": "2025-10-03T04:29:08.273746Z",
-        "updated_at": "2025-10-03T04:29:08.503225Z"
+        "is_active": true,
+        "created_by": "54bee40c-826f-4aa5-b770-2242e397086f",
+        "created_at": "2025-10-03T04:44:37.372396Z",
+        "updated_at": "2025-10-03T04:44:37.372400Z"
       }
     },
     {
-      "test": "Profile Data Integrity",
+      "test": "Get Room Messages",
+      "success": false,
+      "status_code": null,
+      "error": "No room IDs available for testing",
+      "response_data": null
+    },
+    {
+      "test": "Get Direct Messages",
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "All profile fields maintain data integrity"
+      "response_data": "Found 0 direct messages"
     },
     {
-      "test": "Get User Events - 54bee40c-826f-4aa5-b770-2242e397086f",
+      "test": "Get User Conversations",
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "Found 0 events"
+      "response_data": "Found 0 conversations"
     },
     {
-      "test": "Get User Events - bea1e00c-fcba-4b26-9a1d-9692aaebd841",
+      "test": "Get User Status - 54bee40c-826f-4aa5-b770-2242e397086f",
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "Found 0 events"
+      "response_data": "offline"
     },
     {
-      "test": "Profile Photo Upload",
+      "test": "Get User Status - bea1e00c-fcba-4b26-9a1d-9692aaebd841",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "offline"
+    },
+    {
+      "test": "Get User Status - 09fee5f9-2ad1-4c96-a756-75501616a704",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "offline"
+    },
+    {
+      "test": "Chat Image Upload",
       "success": true,
       "status_code": 200,
       "error": null,
       "response_data": {
-        "message": "Profile photo uploaded successfully",
-        "photo_url": "/uploads/profile_photos/4596bc11-06e0-4788-b1d3-9f8c1069c006_9059b067-c7ba-4383-b8b1-2b062a5eb77c.png"
+        "message": "Image uploaded successfully",
+        "image_url": "/uploads/chat_images/54bee40c-826f-4aa5-b770-2242e397086f_df3f4dbb-9163-4e06-bd06-6eefe230f336.png"
       }
+    },
+    {
+      "test": "Access Control - Non-Verified User",
+      "success": true,
+      "status_code": 403,
+      "error": null,
+      "response_data": "Non-verified user correctly denied access to messaging features"
+    },
+    {
+      "test": "Cohort-Based Room Access",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Users have correct cohort-based room access"
+    },
+    {
+      "test": "Program Track-Based Room Access",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Users have correct program track-based room access"
     }
   ],
   "created_ids": {
-    "new_user_id": "4596bc11-06e0-4788-b1d3-9f8c1069c006",
-    "existing_user_ids": [
-      "54bee40c-826f-4aa5-b770-2242e397086f",
-      "bea1e00c-fcba-4b26-9a1d-9692aaebd841",
-      "09fee5f9-2ad1-4c96-a756-75501616a704",
-      "4596bc11-06e0-4788-b1d3-9f8c1069c006"
-    ]
+    "custom_room_id": "131e10b1-f79d-40f3-aa62-fd11199f3ff6",
+    "chat_image_url": "/uploads/chat_images/54bee40c-826f-4aa5-b770-2242e397086f_df3f4dbb-9163-4e06-bd06-6eefe230f336.png"
   }
 }
