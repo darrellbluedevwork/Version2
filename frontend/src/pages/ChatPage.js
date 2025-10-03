@@ -83,7 +83,7 @@ const ChatPage = () => {
 
       // Socket event listeners
       newSocket.on('connect', () => {
-        console.log('Connected to chat server');
+        console.log('✅ Connected to chat server');
         setIsConnected(true);
         
         // Join user to chat system
@@ -93,8 +93,13 @@ const ChatPage = () => {
         });
       });
 
-      newSocket.on('disconnect', () => {
-        console.log('Disconnected from chat server');
+      newSocket.on('disconnect', (reason) => {
+        console.log('❌ Disconnected from chat server. Reason:', reason);
+        setIsConnected(false);
+      });
+
+      newSocket.on('connect_error', (error) => {
+        console.error('❌ Connection error:', error);
         setIsConnected(false);
       });
 
