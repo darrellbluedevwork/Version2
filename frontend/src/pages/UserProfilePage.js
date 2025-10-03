@@ -280,10 +280,12 @@ const UserProfilePage = () => {
                 <CardTitle className="text-lg">Connect</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full bg-red-600 hover:bg-red-700">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Send Message
-                </Button>
+                <Link to="/chat">
+                  <Button className="w-full bg-red-600 hover:bg-red-700">
+                    <Mail className="w-4 h-4 mr-2" />
+                    Send Message
+                  </Button>
+                </Link>
                 <Button variant="outline" className="w-full">
                   <Users className="w-4 h-4 mr-2" />
                   Add to Group
