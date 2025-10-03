@@ -20,6 +20,7 @@ const Header = () => {
     { name: 'Membership', href: '/membership' },
     { name: 'Events', href: '/events' },
     { name: 'Community', href: '/users' },
+    { name: 'Chat', href: '/chat' },
     { name: 'Documents', href: '/documents' },
     { name: 'Shop', href: '/shop' },
     { name: 'News & Updates', href: '/news' },
