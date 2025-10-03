@@ -483,6 +483,364 @@ class ICAABackendTester:
             self.log_test("Products Filtering", False, None, str(e))
             return False
 
+    # USER PROFILE MANAGEMENT TESTS
+    def test_create_user(self):
+        """Test creating a new user with comprehensive profile data"""
+        try:
+            test_user = {
+                "name": "Alice Thompson",
+                "email": f"alice.thompson_{datetime.now().strftime('%H%M%S')}@example.com",
+                "bio": "Software engineer passionate about community building and technology innovation.",
+                "interests": ["Web Development", "Machine Learning", "Community Building", "Mentorship"],
+                "birthday": "1995-03-15",
+                "cohort": "2024",
+                "program_track": "Full Stack Development",
+                "membership_tier": "active_monthly"
+            }
+            
+            response = requests.post(f"{self.api_url}/users", json=test_user)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                self.created_ids['new_user_id'] = data.get('id')
+                print(f"   Created user: {data.get('name')} (ID: {data.get('id')})")
+                
+                # Verify all fields are properly set
+                required_fields = ['name', 'email', 'bio', 'interests', 'birthday', 'cohort', 'program_track']
+                missing_fields = [field for field in required_fields if not data.get(field)]
+                if missing_fields:
+                    error_msg = f"Missing fields in created user: {', '.join(missing_fields)}"
+                    self.log_test("Create User - Field Validation", False, response.status_code, error_msg)
+                    return False
+            
+            self.log_test("Create User", success, response.status_code,
+                         None if success else response.text,
+                         response.json() if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Create User", False, None, str(e))
+            return False
+
+    def test_get_all_users(self):
+        """Test getting all users"""
+        try:
+            response = requests.get(f"{self.api_url}/users")
+            success = response.status_code == 200
+            
+            if success:
+                users = response.json()
+                print(f"   Found {len(users)} users in system")
+                
+                # Store existing user IDs for further testing
+                self.created_ids['existing_user_ids'] = [user.get('id') for user in users]
+                
+                # Verify expected test users exist
+                expected_users = {
+                    "54bee40c-826f-4aa5-b770-2242e397086f": "John Smith",
+                    "bea1e00c-fcba-4b26-9a1d-9692aaebd841": "Sarah Johnson", 
+                    "09fee5f9-2ad1-4c96-a756-75501616a704": "Marcus Williams"
+                }
+                
+                found_users = {}
+                for user in users:
+                    user_id = user.get('id')
+                    if user_id in expected_users:
+                        found_users[user_id] = user.get('name')
+                        print(f"   ✅ Found expected user: {user.get('name')} (ID: {user_id})")
+                
+                missing_users = set(expected_users.keys()) - set(found_users.keys())
+                if missing_users:
+                    print(f"   ⚠️  Missing expected users: {[expected_users[uid] for uid in missing_users]}")
+            
+            self.log_test("Get All Users", success, response.status_code,
+                         None if success else response.text,
+                         f"Found {len(users)} users" if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Get All Users", False, None, str(e))
+            return False
+
+    def test_get_specific_users(self):
+        """Test getting specific users by ID"""
+        test_user_ids = [
+            "54bee40c-826f-4aa5-b770-2242e397086f",  # John Smith
+            "bea1e00c-fcba-4b26-9a1d-9692aaebd841",  # Sarah Johnson
+            "09fee5f9-2ad1-4c96-a756-75501616a704"   # Marcus Williams
+        ]
+        
+        expected_data = {
+            "54bee40c-826f-4aa5-b770-2242e397086f": {
+                "name": "John Smith",
+                "cohort": "2023",
+                "program_track": "Web Development"
+            },
+            "bea1e00c-fcba-4b26-9a1d-9692aaebd841": {
+                "name": "Sarah Johnson", 
+                "cohort": "2022",
+                "program_track": "Data Analytics"
+            },
+            "09fee5f9-2ad1-4c96-a756-75501616a704": {
+                "name": "Marcus Williams",
+                "cohort": "2021", 
+                "program_track": "UX/UI Design"
+            }
+        }
+        
+        all_success = True
+        for user_id in test_user_ids:
+            try:
+                response = requests.get(f"{self.api_url}/users/{user_id}")
+                success = response.status_code == 200
+                
+                if success:
+                    user_data = response.json()
+                    expected = expected_data.get(user_id, {})
+                    
+                    # Verify key profile data
+                    name_match = user_data.get('name') == expected.get('name')
+                    cohort_match = user_data.get('cohort') == expected.get('cohort')
+                    track_match = user_data.get('program_track') == expected.get('program_track')
+                    
+                    if name_match and cohort_match and track_match:
+                        print(f"   ✅ {user_data.get('name')}: Profile data verified")
+                    else:
+                        print(f"   ⚠️  {user_data.get('name')}: Profile data mismatch")
+                        print(f"      Expected: {expected}")
+                        print(f"      Got: name={user_data.get('name')}, cohort={user_data.get('cohort')}, track={user_data.get('program_track')}")
+                else:
+                    print(f"   ❌ Failed to get user {user_id}: {response.status_code}")
+                    all_success = False
+                
+                self.log_test(f"Get User {user_id}", success, response.status_code,
+                             None if success else response.text,
+                             user_data.get('name') if success else None)
+                
+                if not success:
+                    all_success = False
+                    
+            except Exception as e:
+                self.log_test(f"Get User {user_id}", False, None, str(e))
+                all_success = False
+        
+        return all_success
+
+    def test_update_user_profile(self):
+        """Test updating user profile data"""
+        if 'new_user_id' not in self.created_ids:
+            self.log_test("Update User Profile", False, None, "No user ID available for update")
+            return False
+            
+        try:
+            user_id = self.created_ids['new_user_id']
+            update_data = {
+                "bio": "Updated bio: Senior software engineer with expertise in full-stack development and team leadership.",
+                "interests": ["Advanced Web Development", "Team Leadership", "Open Source", "AI/ML"],
+                "cohort": "2024",
+                "program_track": "Advanced Full Stack Development"
+            }
+            
+            response = requests.put(f"{self.api_url}/users/{user_id}", json=update_data)
+            success = response.status_code == 200
+            
+            if success:
+                updated_user = response.json()
+                print(f"   Updated user: {updated_user.get('name')}")
+                
+                # Verify updates were applied
+                bio_updated = update_data['bio'] in updated_user.get('bio', '')
+                interests_updated = set(update_data['interests']).issubset(set(updated_user.get('interests', [])))
+                
+                if not (bio_updated and interests_updated):
+                    error_msg = "Profile updates not properly applied"
+                    self.log_test("Update User Profile - Verification", False, response.status_code, error_msg)
+                    return False
+                else:
+                    print(f"   ✅ Profile updates verified successfully")
+            
+            self.log_test("Update User Profile", success, response.status_code,
+                         None if success else response.text,
+                         response.json() if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Update User Profile", False, None, str(e))
+            return False
+
+    def test_user_event_history(self):
+        """Test getting user event registration history"""
+        test_user_ids = [
+            "54bee40c-826f-4aa5-b770-2242e397086f",  # John Smith
+            "bea1e00c-fcba-4b26-9a1d-9692aaebd841",  # Sarah Johnson
+        ]
+        
+        all_success = True
+        for user_id in test_user_ids:
+            try:
+                response = requests.get(f"{self.api_url}/users/{user_id}/events")
+                success = response.status_code == 200
+                
+                if success:
+                    events = response.json()
+                    print(f"   User {user_id}: Found {len(events)} event registrations")
+                    
+                    # Verify event data structure
+                    for event_data in events:
+                        required_fields = ['event', 'registration_status', 'registered_at']
+                        missing_fields = [field for field in required_fields if field not in event_data]
+                        if missing_fields:
+                            error_msg = f"Missing fields in event data: {', '.join(missing_fields)}"
+                            self.log_test(f"User Events Structure - {user_id}", False, response.status_code, error_msg)
+                            all_success = False
+                            break
+                        
+                        # Verify registration status is valid
+                        valid_statuses = ['registered', 'waitlisted', 'cancelled']
+                        if event_data.get('registration_status') not in valid_statuses:
+                            error_msg = f"Invalid registration status: {event_data.get('registration_status')}"
+                            self.log_test(f"User Events Status - {user_id}", False, response.status_code, error_msg)
+                            all_success = False
+                            break
+                else:
+                    print(f"   ❌ Failed to get events for user {user_id}: {response.status_code}")
+                    all_success = False
+                
+                self.log_test(f"Get User Events - {user_id}", success, response.status_code,
+                             None if success else response.text,
+                             f"Found {len(events)} events" if success else None)
+                
+                if not success:
+                    all_success = False
+                    
+            except Exception as e:
+                self.log_test(f"Get User Events - {user_id}", False, None, str(e))
+                all_success = False
+        
+        return all_success
+
+    def test_profile_photo_upload(self):
+        """Test profile photo upload functionality"""
+        if 'new_user_id' not in self.created_ids:
+            self.log_test("Profile Photo Upload", False, None, "No user ID available for photo upload")
+            return False
+            
+        try:
+            user_id = self.created_ids['new_user_id']
+            
+            # Create a simple test image file (1x1 pixel PNG)
+            import base64
+            import io
+            
+            # Minimal PNG data (1x1 transparent pixel)
+            png_data = base64.b64decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77zgAAAABJRU5ErkJggg=='
+            )
+            
+            files = {
+                'file': ('test_profile.png', io.BytesIO(png_data), 'image/png')
+            }
+            
+            response = requests.post(f"{self.api_url}/users/{user_id}/upload-photo", files=files)
+            success = response.status_code == 200
+            
+            if success:
+                result = response.json()
+                photo_url = result.get('photo_url')
+                print(f"   Photo uploaded successfully: {photo_url}")
+                
+                # Verify the user profile was updated with photo URL
+                user_response = requests.get(f"{self.api_url}/users/{user_id}")
+                if user_response.status_code == 200:
+                    user_data = user_response.json()
+                    if user_data.get('profile_photo_url') == photo_url:
+                        print(f"   ✅ User profile updated with photo URL")
+                    else:
+                        error_msg = "User profile not updated with photo URL"
+                        self.log_test("Profile Photo Upload - Profile Update", False, response.status_code, error_msg)
+                        return False
+            
+            self.log_test("Profile Photo Upload", success, response.status_code,
+                         None if success else response.text,
+                         response.json() if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Profile Photo Upload", False, None, str(e))
+            return False
+
+    def test_profile_data_integrity(self):
+        """Test comprehensive profile data integrity across all fields"""
+        try:
+            # Test with comprehensive profile data
+            test_user = {
+                "name": "Emma Rodriguez",
+                "email": f"emma.rodriguez_{datetime.now().strftime('%H%M%S')}@example.com",
+                "bio": "Product manager with 8 years experience in tech startups. Passionate about user experience and data-driven decision making.",
+                "interests": ["Product Management", "UX Research", "Data Analytics", "Startup Ecosystem", "Mentorship"],
+                "birthday": "1990-07-22",
+                "cohort": "2019",
+                "program_track": "Product Management",
+                "membership_tier": "lifetime"
+            }
+            
+            # Create user
+            response = requests.post(f"{self.api_url}/users", json=test_user)
+            success = response.status_code == 200
+            
+            if not success:
+                self.log_test("Profile Data Integrity - Create", False, response.status_code, response.text)
+                return False
+            
+            created_user = response.json()
+            user_id = created_user.get('id')
+            
+            # Verify all profile fields are correctly stored and retrieved
+            get_response = requests.get(f"{self.api_url}/users/{user_id}")
+            if get_response.status_code != 200:
+                self.log_test("Profile Data Integrity - Retrieve", False, get_response.status_code, get_response.text)
+                return False
+            
+            retrieved_user = get_response.json()
+            
+            # Check each field for integrity
+            field_checks = {
+                'name': test_user['name'] == retrieved_user.get('name'),
+                'email': test_user['email'] == retrieved_user.get('email'),
+                'bio': test_user['bio'] == retrieved_user.get('bio'),
+                'interests': set(test_user['interests']) == set(retrieved_user.get('interests', [])),
+                'birthday': test_user['birthday'] == retrieved_user.get('birthday'),
+                'cohort': test_user['cohort'] == retrieved_user.get('cohort'),
+                'program_track': test_user['program_track'] == retrieved_user.get('program_track'),
+                'membership_tier': test_user['membership_tier'] == retrieved_user.get('membership_tier')
+            }
+            
+            failed_fields = [field for field, passed in field_checks.items() if not passed]
+            
+            if failed_fields:
+                error_msg = f"Data integrity failed for fields: {', '.join(failed_fields)}"
+                print(f"   ❌ {error_msg}")
+                for field in failed_fields:
+                    print(f"      {field}: expected '{test_user.get(field)}', got '{retrieved_user.get(field)}'")
+                self.log_test("Profile Data Integrity", False, 200, error_msg)
+                return False
+            else:
+                print(f"   ✅ All profile fields maintain data integrity")
+                
+            # Test interest arrays specifically
+            if len(retrieved_user.get('interests', [])) != len(test_user['interests']):
+                error_msg = f"Interest array length mismatch: expected {len(test_user['interests'])}, got {len(retrieved_user.get('interests', []))}"
+                self.log_test("Profile Data Integrity - Interests", False, 200, error_msg)
+                return False
+            
+            # Test cohort/program track filtering potential
+            print(f"   ✅ Cohort: {retrieved_user.get('cohort')}, Program Track: {retrieved_user.get('program_track')}")
+            
+            self.log_test("Profile Data Integrity", True, 200, None,
+                         "All profile fields maintain data integrity")
+            return True
+            
+        except Exception as e:
+            self.log_test("Profile Data Integrity", False, None, str(e))
+            return False
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting ICAA Backend API Tests")
