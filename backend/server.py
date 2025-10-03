@@ -1709,11 +1709,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@app.on_event("shutdown")
+@fastapi_app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
 
 # Export the combined app for uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(socket_app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
