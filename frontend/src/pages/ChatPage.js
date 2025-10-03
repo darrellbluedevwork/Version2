@@ -38,6 +38,13 @@ const ChatPage = () => {
     initializeChat();
     return () => {
       if (socket) {
+        socket.off('connect');
+        socket.off('disconnect'); 
+        socket.off('user_joined');
+        socket.off('joined_room');
+        socket.off('new_message');
+        socket.off('new_direct_message');
+        socket.off('error');
         socket.disconnect();
       }
     };
