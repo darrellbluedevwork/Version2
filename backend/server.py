@@ -25,6 +25,15 @@ db = client[os.environ['DB_NAME']]
 # Create the main app without a prefix
 app = FastAPI()
 
+# Create SocketIO server for real-time messaging
+sio = socketio.AsyncServer(
+    cors_allowed_origins="*",
+    async_mode='asgi'
+)
+
+# Create ASGI app that combines FastAPI and SocketIO
+socket_app = socketio.ASGIApp(sio, app)
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
