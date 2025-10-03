@@ -23,7 +23,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+fastapi_app = FastAPI()
 
 # Create SocketIO server for real-time messaging
 sio = socketio.AsyncServer(
@@ -32,10 +32,7 @@ sio = socketio.AsyncServer(
 )
 
 # Create ASGI app that combines FastAPI and SocketIO
-socket_app = socketio.ASGIApp(sio, app)
-
-# Make app point to socket_app for uvicorn
-app = socket_app
+app = socketio.ASGIApp(sio, fastapi_app)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
