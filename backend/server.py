@@ -1002,6 +1002,256 @@ async def upload_profile_photo(user_id: str, file: UploadFile = File(...)):
     
     return {"message": "Profile photo uploaded successfully", "photo_url": photo_url}
 
+# Chat Room endpoints
+@api_router.get("/chat-rooms", response_model=List[ChatRoom])
+async def get_user_chat_rooms(user_id: str):
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.get('is_verified_alumni', False):
+        raise HTTPException(status_code=403, detail="Access denied. Verified alumni only.")
+    
+    # Get rooms user can access
+    rooms = []
+    
+    # Cohort room
+    if user.get('cohort'):
+        cohort_room = await db.chat_rooms.find_one({
+            "room_type": "cohort",
+            "cohort": user['cohort'],
+            "is_active": True
+        })
+        if cohort_room:
+            rooms.append(ChatRoom(**parse_from_mongo(cohort_room)))
+    
+    # Program track room  
+    if user.get('program_track'):
+        track_room = await db.chat_rooms.find_one({
+            "room_type": "program_track", 
+            "program_track": user['program_track'],
+            "is_active": True
+        })
+        if track_room:
+            rooms.append(ChatRoom(**parse_from_mongo(track_room)))
+    
+    # Custom rooms where user is participant
+    custom_rooms = await db.chat_rooms.find({
+        "room_type": "custom",
+        "participants": user_id,
+        "is_active": True
+    }).to_list(100)
+    
+    for room in custom_rooms:
+        rooms.append(ChatRoom(**parse_from_mongo(room)))
+    
+    return rooms
+
+@api_router.post("/chat-rooms", response_model=ChatRoom)
+async def create_chat_room(room: ChatRoomCreate, creator_id: str):
+    # Verify creator exists and is verified alumni
+    creator = await db.users.find_one({"id": creator_id})
+    if not creator:
+        raise HTTPException(status_code=404, detail="Creator not found")
+    
+    if not creator.get('is_verified_alumni', False):
+        raise HTTPException(status_code=403, detail="Access denied. Verified alumni only.")
+    
+    # Create room
+    room_dict = room.dict()
+    room_obj = ChatRoom(**room_dict, created_by=creator_id, admins=[creator_id])
+    
+    # Add creator to participants if not already included
+    if creator_id not in room_obj.participants:
+        room_obj.participants.append(creator_id)
+    
+    prepared_data = prepare_for_mongo(room_obj.dict())
+    await db.chat_rooms.insert_one(prepared_data)
+    return room_obj
+
+@api_router.get("/chat-rooms/{room_id}/messages", response_model=List[Message])
+async def get_room_messages(room_id: str, user_id: str, limit: int = 50, skip: int = 0):
+    # Verify user has access to room
+    user = await db.users.find_one({"id": user_id})
+    if not user or not user.get('is_verified_alumni', False):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    room = await db.chat_rooms.find_one({"id": room_id, "is_active": True})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    # Check access
+    user_info = {
+        'user_id': user_id,
+        'cohort': user.get('cohort'),
+        'program_track': user.get('program_track')
+    }
+    
+    if not can_access_room(user_info, room):
+        raise HTTPException(status_code=403, detail="Access denied to this room")
+    
+    # Get messages
+    messages = await db.messages.find({
+        "room_id": room_id,
+        "is_deleted": False
+    }).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    # Reverse to show oldest first
+    messages.reverse()
+    
+    return [Message(**parse_from_mongo(msg)) for msg in messages]
+
+@api_router.get("/direct-messages", response_model=List[DirectMessage])
+async def get_direct_messages(user_id: str, other_user_id: str, limit: int = 50, skip: int = 0):
+    # Verify user exists and is verified alumni
+    user = await db.users.find_one({"id": user_id})
+    if not user or not user.get('is_verified_alumni', False):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get direct messages between two users
+    messages = await db.direct_messages.find({
+        "$or": [
+            {"sender_id": user_id, "receiver_id": other_user_id},
+            {"sender_id": other_user_id, "receiver_id": user_id}
+        ],
+        "is_deleted": False
+    }).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    # Mark messages as read for the requesting user
+    await db.direct_messages.update_many(
+        {
+            "sender_id": other_user_id,
+            "receiver_id": user_id,
+            "is_read": False
+        },
+        {"$set": {"is_read": True}}
+    )
+    
+    # Reverse to show oldest first
+    messages.reverse()
+    
+    return [DirectMessage(**parse_from_mongo(msg)) for msg in messages]
+
+@api_router.get("/direct-messages/conversations", response_model=List[Dict])
+async def get_user_conversations(user_id: str):
+    # Get list of users this user has had conversations with
+    user = await db.users.find_one({"id": user_id})
+    if not user or not user.get('is_verified_alumni', False):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Aggregate to get unique conversation partners and latest message
+    pipeline = [
+        {
+            "$match": {
+                "$or": [
+                    {"sender_id": user_id},
+                    {"receiver_id": user_id}
+                ],
+                "is_deleted": False
+            }
+        },
+        {
+            "$addFields": {
+                "other_user_id": {
+                    "$cond": {
+                        "if": {"$eq": ["$sender_id", user_id]},
+                        "then": "$receiver_id",
+                        "else": "$sender_id"
+                    }
+                },
+                "other_user_name": {
+                    "$cond": {
+                        "if": {"$eq": ["$sender_id", user_id]},
+                        "then": "$receiver_name", 
+                        "else": "$sender_name"
+                    }
+                }
+            }
+        },
+        {
+            "$sort": {"created_at": -1}
+        },
+        {
+            "$group": {
+                "_id": "$other_user_id",
+                "other_user_name": {"$first": "$other_user_name"},
+                "latest_message": {"$first": "$$ROOT"},
+                "unread_count": {
+                    "$sum": {
+                        "$cond": {
+                            "if": {
+                                "$and": [
+                                    {"$eq": ["$receiver_id", user_id]},
+                                    {"$eq": ["$is_read", False]}
+                                ]
+                            },
+                            "then": 1,
+                            "else": 0
+                        }
+                    }
+                }
+            }
+        }
+    ]
+    
+    conversations = await db.direct_messages.aggregate(pipeline).to_list(100)
+    
+    return [
+        {
+            "other_user_id": conv["_id"],
+            "other_user_name": conv["other_user_name"],
+            "latest_message": conv["latest_message"],
+            "unread_count": conv["unread_count"]
+        }
+        for conv in conversations
+    ]
+
+@api_router.post("/chat-images/upload")
+async def upload_chat_image(user_id: str, file: UploadFile = File(...)):
+    # Verify user exists and is verified alumni
+    user = await db.users.find_one({"id": user_id})
+    if not user or not user.get('is_verified_alumni', False):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Validate file type
+    allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    file_extension = Path(file.filename).suffix.lower()
+    if file_extension not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"File type {file_extension} not allowed")
+    
+    # Create chat images directory
+    CHAT_IMAGES_DIR = ROOT_DIR / "uploads" / "chat_images"
+    CHAT_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Generate unique filename
+    filename = f"{user_id}_{uuid.uuid4()}{file_extension}"
+    file_path = CHAT_IMAGES_DIR / filename
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Return image URL
+    image_url = f"/uploads/chat_images/{filename}"
+    return {"message": "Image uploaded successfully", "image_url": image_url}
+
+@api_router.get("/users/{user_id}/online-status")
+async def get_user_online_status(user_id: str):
+    status = await db.user_status.find_one({"user_id": user_id})
+    if status:
+        return {
+            "user_id": user_id,
+            "status": status["status"],
+            "last_seen": status["last_seen"],
+            "current_room": status.get("current_room")
+        }
+    return {
+        "user_id": user_id,
+        "status": "offline",
+        "last_seen": None,
+        "current_room": None
+    }
+
 # WebSocket event handlers for real-time messaging
 connected_users = {}  # {session_id: user_info}
 user_sessions = {}    # {user_id: session_id}
