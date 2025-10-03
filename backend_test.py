@@ -939,7 +939,12 @@ class ICAABackendTester:
 
 def main():
     tester = ICAABackendTester()
-    success = tester.run_all_tests()
+    
+    # Check if we should run user profile tests specifically
+    if len(sys.argv) > 1 and sys.argv[1] == "user_profile":
+        success = tester.run_user_profile_tests()
+    else:
+        success = tester.run_all_tests()
     
     # Save detailed results
     with open('/app/backend_test_results.json', 'w') as f:
