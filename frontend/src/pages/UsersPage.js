@@ -256,10 +256,16 @@ const UsersPage = () => {
                       </div>
                     )}
 
-                    <div className="pt-3">
+                    <div className="pt-3 space-y-2">
                       <Link to={`/users/${user.id}`} className="block">
                         <Button className="w-full bg-red-600 hover:bg-red-700 text-sm">
                           View Profile
+                        </Button>
+                      </Link>
+                      <Link to="/chat" className="block">
+                        <Button variant="outline" className="w-full text-sm">
+                          <MessageCircle className="w-4 h-4 mr-1" />
+                          Message
                         </Button>
                       </Link>
                     </div>
