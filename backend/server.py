@@ -37,6 +37,44 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Define Models
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: EmailStr
+    password_hash: Optional[str] = None  # For future auth implementation
+    bio: Optional[str] = None
+    interests: Optional[List[str]] = None
+    birthday: Optional[str] = None  # ISO date string
+    profile_photo_url: Optional[str] = None
+    cohort: Optional[str] = None  # Graduation cycle/year
+    program_track: Optional[str] = None  # Program track information
+    is_verified_alumni: bool = False
+    membership_tier: str = "free"  # "free", "active_monthly", "active_yearly", "lifetime"
+    payment_status: str = "pending"  # "pending", "active", "expired"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class UserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: Optional[str] = None
+    bio: Optional[str] = None
+    interests: Optional[List[str]] = None
+    birthday: Optional[str] = None
+    cohort: Optional[str] = None
+    program_track: Optional[str] = None
+    membership_tier: str = "free"
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    interests: Optional[List[str]] = None
+    birthday: Optional[str] = None
+    cohort: Optional[str] = None
+    program_track: Optional[str] = None
+    profile_photo_url: Optional[str] = None
+
+# Legacy Member models for backward compatibility
 class Member(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
