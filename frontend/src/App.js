@@ -18,6 +18,9 @@ import ProductDetailsPage from "./pages/ProductDetailsPage";
 import CartPage from "./pages/CartPage";
 import MembershipSuccessPage from "./pages/MembershipSuccessPage";
 import AdminPage from "./pages/AdminPage";
+import UsersPage from "./pages/UsersPage";
+import UserProfilePage from "./pages/UserProfilePage";
+import EditProfilePage from "./pages/EditProfilePage";
 
 // Import components
 import Header from "./components/Header";
