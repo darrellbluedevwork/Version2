@@ -1544,14 +1544,14 @@ def can_access_room(user_info, room):
     return False
 
 # File serving endpoints
-@app.get("/uploads/profile_photos/{filename}")
+@fastapi_app.get("/uploads/profile_photos/{filename}")
 async def serve_profile_photo(filename: str):
     file_path = ROOT_DIR / "uploads" / "profile_photos" / filename
     if file_path.exists():
         return FileResponse(file_path)
     raise HTTPException(status_code=404, detail="File not found")
 
-@app.get("/uploads/chat_images/{filename}")
+@fastapi_app.get("/uploads/chat_images/{filename}")
 async def serve_chat_image(filename: str):
     file_path = ROOT_DIR / "uploads" / "chat_images" / filename
     if file_path.exists():
