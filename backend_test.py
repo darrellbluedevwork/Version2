@@ -841,6 +841,48 @@ class ICAABackendTester:
             self.log_test("Profile Data Integrity", False, None, str(e))
             return False
 
+    def run_user_profile_tests(self):
+        """Run comprehensive User Profile Management tests"""
+        print("👤 Testing User Profile Management System:")
+        print("=" * 50)
+        
+        # Test basic connectivity first
+        if not self.test_root_endpoint():
+            print("❌ Root endpoint failed - stopping tests")
+            return False
+        
+        # User CRUD Operations
+        print("\n📝 Testing User CRUD Operations:")
+        self.test_create_user()
+        self.test_get_all_users()
+        self.test_get_specific_users()
+        self.test_update_user_profile()
+        
+        # Profile Data Integrity
+        print("\n🔍 Testing Profile Data Integrity:")
+        self.test_profile_data_integrity()
+        
+        # User Event History
+        print("\n📅 Testing User Event History:")
+        self.test_user_event_history()
+        
+        # Profile Photo Upload
+        print("\n📸 Testing Profile Photo Upload:")
+        self.test_profile_photo_upload()
+        
+        # Print summary
+        print("\n" + "=" * 50)
+        print(f"📊 User Profile Test Results: {self.tests_passed}/{self.tests_run} passed")
+        success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
+        print(f"📈 Success Rate: {success_rate:.1f}%")
+        
+        if self.tests_passed == self.tests_run:
+            print("🎉 All User Profile tests passed!")
+            return True
+        else:
+            print("⚠️  Some User Profile tests failed - check logs above")
+            return False
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting ICAA Backend API Tests")
