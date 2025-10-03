@@ -919,6 +919,14 @@ async def upload_profile_photo(user_id: str, file: UploadFile = File(...)):
     
     return {"message": "Profile photo uploaded successfully", "photo_url": photo_url}
 
+# File serving endpoints
+@app.get("/uploads/profile_photos/{filename}")
+async def serve_profile_photo(filename: str):
+    file_path = ROOT_DIR / "uploads" / "profile_photos" / filename
+    if file_path.exists():
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="File not found")
+
 # Payment endpoints (existing code)
 @api_router.post("/payments/create-checkout-session")
 async def create_checkout_session(request: CheckoutRequest, http_request: Request):
