@@ -74,6 +74,79 @@ class UserUpdate(BaseModel):
     program_track: Optional[str] = None
     profile_photo_url: Optional[str] = None
 
+# Messaging Models
+class ChatRoom(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    room_type: str  # "cohort", "program_track", "custom", "direct"
+    cohort: Optional[str] = None  # For cohort-based rooms
+    program_track: Optional[str] = None  # For program track-based rooms
+    participants: List[str] = Field(default_factory=list)  # User IDs
+    admins: List[str] = Field(default_factory=list)  # User IDs who can moderate
+    is_active: bool = True
+    created_by: str  # User ID
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ChatRoomCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    room_type: str
+    cohort: Optional[str] = None
+    program_track: Optional[str] = None
+    participants: Optional[List[str]] = Field(default_factory=list)
+
+class Message(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    room_id: str
+    sender_id: str
+    sender_name: str
+    message_type: str = "text"  # "text", "image", "file"
+    content: str
+    image_url: Optional[str] = None
+    file_url: Optional[str] = None
+    reply_to: Optional[str] = None  # Message ID if this is a reply
+    is_edited: bool = False
+    is_deleted: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MessageCreate(BaseModel):
+    room_id: str
+    message_type: str = "text"
+    content: str
+    image_url: Optional[str] = None
+    file_url: Optional[str] = None
+    reply_to: Optional[str] = None
+
+class DirectMessage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sender_id: str
+    receiver_id: str
+    sender_name: str
+    receiver_name: str
+    message_type: str = "text"
+    content: str
+    image_url: Optional[str] = None
+    file_url: Optional[str] = None
+    is_read: bool = False
+    is_deleted: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class DirectMessageCreate(BaseModel):
+    receiver_id: str
+    message_type: str = "text"
+    content: str
+    image_url: Optional[str] = None
+    file_url: Optional[str] = None
+
+class UserStatus(BaseModel):
+    user_id: str
+    status: str = "online"  # "online", "offline", "away"
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    current_room: Optional[str] = None
+
 # Legacy Member models for backward compatibility
 class Member(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
