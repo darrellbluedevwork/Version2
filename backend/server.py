@@ -1002,10 +1002,307 @@ async def upload_profile_photo(user_id: str, file: UploadFile = File(...)):
     
     return {"message": "Profile photo uploaded successfully", "photo_url": photo_url}
 
+# WebSocket event handlers for real-time messaging
+connected_users = {}  # {session_id: user_info}
+user_sessions = {}    # {user_id: session_id}
+
+@sio.event
+async def connect(sid, environ):
+    print(f"Client {sid} connected")
+    await sio.emit('connected', {'status': 'Connected to ICAA Chat'}, to=sid)
+
+@sio.event
+async def disconnect(sid):
+    print(f"Client {sid} disconnected")
+    # Remove user from connected users and update status
+    if sid in connected_users:
+        user_info = connected_users[sid]
+        user_id = user_info['user_id']
+        
+        # Update user status to offline
+        await db.user_status.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "status": "offline",
+                "last_seen": datetime.now(timezone.utc).isoformat(),
+                "current_room": None
+            }},
+            upsert=True
+        )
+        
+        # Clean up tracking dictionaries
+        del connected_users[sid]
+        if user_id in user_sessions:
+            del user_sessions[user_id]
+
+@sio.event
+async def join_user(sid, data):
+    user_id = data.get('user_id')
+    user_name = data.get('user_name')
+    
+    if not user_id:
+        await sio.emit('error', {'message': 'User ID required'}, to=sid)
+        return
+    
+    # Verify user exists and is verified alumni
+    user = await db.users.find_one({"id": user_id})
+    if not user or not user.get('is_verified_alumni', False):
+        await sio.emit('error', {'message': 'Access denied. Verified alumni only.'}, to=sid)
+        return
+    
+    # Store user connection info
+    connected_users[sid] = {
+        'user_id': user_id,
+        'user_name': user_name or user['name'],
+        'cohort': user.get('cohort'),
+        'program_track': user.get('program_track')
+    }
+    user_sessions[user_id] = sid
+    
+    # Update user status to online
+    await db.user_status.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "status": "online",
+            "last_seen": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    # Auto-join cohort and program track rooms
+    await auto_join_default_rooms(sid, user)
+    
+    await sio.emit('user_joined', {
+        'user_id': user_id,
+        'user_name': connected_users[sid]['user_name'],
+        'status': 'online'
+    }, to=sid)
+
+@sio.event
+async def join_room(sid, data):
+    room_id = data.get('room_id')
+    if not room_id:
+        await sio.emit('error', {'message': 'Room ID required'}, to=sid)
+        return
+    
+    user_info = connected_users.get(sid)
+    if not user_info:
+        await sio.emit('error', {'message': 'User not authenticated'}, to=sid)
+        return
+    
+    # Verify room exists and user has access
+    room = await db.chat_rooms.find_one({"id": room_id, "is_active": True})
+    if not room:
+        await sio.emit('error', {'message': 'Room not found'}, to=sid)
+        return
+    
+    # Check if user has access to room
+    if not can_access_room(user_info, room):
+        await sio.emit('error', {'message': 'Access denied to this room'}, to=sid)
+        return
+    
+    await sio.enter_room(sid, room_id)
+    
+    # Update user's current room
+    await db.user_status.update_one(
+        {"user_id": user_info['user_id']},
+        {"$set": {"current_room": room_id}},
+        upsert=True
+    )
+    
+    await sio.emit('joined_room', {'room_id': room_id, 'room_name': room['name']}, to=sid)
+
+@sio.event
+async def send_message(sid, data):
+    user_info = connected_users.get(sid)
+    if not user_info:
+        await sio.emit('error', {'message': 'User not authenticated'}, to=sid)
+        return
+    
+    room_id = data.get('room_id')
+    content = data.get('content', '').strip()
+    message_type = data.get('message_type', 'text')
+    
+    if not room_id or not content:
+        await sio.emit('error', {'message': 'Room ID and content required'}, to=sid)
+        return
+    
+    # Create message
+    message = Message(
+        room_id=room_id,
+        sender_id=user_info['user_id'],
+        sender_name=user_info['user_name'],
+        message_type=message_type,
+        content=content,
+        image_url=data.get('image_url'),
+        file_url=data.get('file_url'),
+        reply_to=data.get('reply_to')
+    )
+    
+    # Save to database
+    prepared_data = prepare_for_mongo(message.dict())
+    await db.messages.insert_one(prepared_data)
+    
+    # Emit to all users in the room
+    message_data = {
+        'id': message.id,
+        'room_id': room_id,
+        'sender_id': user_info['user_id'],
+        'sender_name': user_info['user_name'],
+        'content': content,
+        'message_type': message_type,
+        'image_url': message.image_url,
+        'created_at': message.created_at.isoformat(),
+        'reply_to': message.reply_to
+    }
+    
+    await sio.emit('new_message', message_data, room=room_id)
+
+@sio.event
+async def send_direct_message(sid, data):
+    user_info = connected_users.get(sid)
+    if not user_info:
+        await sio.emit('error', {'message': 'User not authenticated'}, to=sid)
+        return
+    
+    receiver_id = data.get('receiver_id')
+    content = data.get('content', '').strip()
+    message_type = data.get('message_type', 'text')
+    
+    if not receiver_id or not content:
+        await sio.emit('error', {'message': 'Receiver ID and content required'}, to=sid)
+        return
+    
+    # Get receiver info
+    receiver = await db.users.find_one({"id": receiver_id})
+    if not receiver:
+        await sio.emit('error', {'message': 'Receiver not found'}, to=sid)
+        return
+    
+    # Create direct message
+    dm = DirectMessage(
+        sender_id=user_info['user_id'],
+        receiver_id=receiver_id,
+        sender_name=user_info['user_name'],
+        receiver_name=receiver['name'],
+        message_type=message_type,
+        content=content,
+        image_url=data.get('image_url'),
+        file_url=data.get('file_url')
+    )
+    
+    # Save to database
+    prepared_data = prepare_for_mongo(dm.dict())
+    await db.direct_messages.insert_one(prepared_data)
+    
+    # Send to both users if they're online
+    dm_data = {
+        'id': dm.id,
+        'sender_id': user_info['user_id'],
+        'sender_name': user_info['user_name'],
+        'receiver_id': receiver_id,
+        'receiver_name': receiver['name'],
+        'content': content,
+        'message_type': message_type,
+        'image_url': dm.image_url,
+        'created_at': dm.created_at.isoformat()
+    }
+    
+    # Send to sender
+    await sio.emit('new_direct_message', dm_data, to=sid)
+    
+    # Send to receiver if online
+    if receiver_id in user_sessions:
+        receiver_sid = user_sessions[receiver_id]
+        await sio.emit('new_direct_message', dm_data, to=receiver_sid)
+
+async def auto_join_default_rooms(sid, user):
+    """Auto-join user to cohort and program track rooms"""
+    cohort = user.get('cohort')
+    program_track = user.get('program_track')
+    
+    # Join cohort room
+    if cohort:
+        cohort_room = await get_or_create_cohort_room(cohort)
+        await sio.enter_room(sid, cohort_room['id'])
+    
+    # Join program track room
+    if program_track:
+        track_room = await get_or_create_program_track_room(program_track)
+        await sio.enter_room(sid, track_room['id'])
+
+async def get_or_create_cohort_room(cohort):
+    """Get or create a room for a specific cohort"""
+    room = await db.chat_rooms.find_one({
+        "room_type": "cohort",
+        "cohort": cohort,
+        "is_active": True
+    })
+    
+    if not room:
+        # Create new cohort room
+        new_room = ChatRoom(
+            name=f"Cohort {cohort}",
+            description=f"Chat room for {cohort} cohort alumni",
+            room_type="cohort",
+            cohort=cohort,
+            created_by="system"
+        )
+        prepared_data = prepare_for_mongo(new_room.dict())
+        await db.chat_rooms.insert_one(prepared_data)
+        room = new_room.dict()
+    
+    return room
+
+async def get_or_create_program_track_room(program_track):
+    """Get or create a room for a specific program track"""
+    room = await db.chat_rooms.find_one({
+        "room_type": "program_track",
+        "program_track": program_track,
+        "is_active": True
+    })
+    
+    if not room:
+        # Create new program track room
+        new_room = ChatRoom(
+            name=f"{program_track} Alumni",
+            description=f"Chat room for {program_track} program alumni",
+            room_type="program_track",
+            program_track=program_track,
+            created_by="system"
+        )
+        prepared_data = prepare_for_mongo(new_room.dict())
+        await db.chat_rooms.insert_one(prepared_data)
+        room = new_room.dict()
+    
+    return room
+
+def can_access_room(user_info, room):
+    """Check if user can access a specific room"""
+    room_type = room['room_type']
+    
+    if room_type == "cohort":
+        return user_info.get('cohort') == room.get('cohort')
+    elif room_type == "program_track":
+        return user_info.get('program_track') == room.get('program_track')
+    elif room_type == "custom":
+        return user_info['user_id'] in room.get('participants', [])
+    elif room_type == "direct":
+        return user_info['user_id'] in room.get('participants', [])
+    
+    return False
+
 # File serving endpoints
 @app.get("/uploads/profile_photos/{filename}")
 async def serve_profile_photo(filename: str):
     file_path = ROOT_DIR / "uploads" / "profile_photos" / filename
+    if file_path.exists():
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="File not found")
+
+@app.get("/uploads/chat_images/{filename}")
+async def serve_chat_image(filename: str):
+    file_path = ROOT_DIR / "uploads" / "chat_images" / filename
     if file_path.exists():
         return FileResponse(file_path)
     raise HTTPException(status_code=404, detail="File not found")
