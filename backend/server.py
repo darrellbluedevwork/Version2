@@ -34,6 +34,9 @@ sio = socketio.AsyncServer(
 # Create ASGI app that combines FastAPI and SocketIO
 socket_app = socketio.ASGIApp(sio, app)
 
+# Make app point to socket_app for uvicorn
+app = socket_app
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
