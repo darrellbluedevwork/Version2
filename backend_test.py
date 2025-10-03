@@ -841,6 +841,522 @@ class ICAABackendTester:
             self.log_test("Profile Data Integrity", False, None, str(e))
             return False
 
+    # GROUP MESSAGING SYSTEM TESTS
+    def test_get_user_chat_rooms(self):
+        """Test getting user's accessible chat rooms (verified alumni only)"""
+        # Test users (all verified alumni)
+        test_users = [
+            {"id": "54bee40c-826f-4aa5-b770-2242e397086f", "name": "John Smith", "cohort": "2023", "track": "Web Development"},
+            {"id": "bea1e00c-fcba-4b26-9a1d-9692aaebd841", "name": "Sarah Johnson", "cohort": "2022", "track": "Data Analytics"},
+            {"id": "09fee5f9-2ad1-4c96-a756-75501616a704", "name": "Marcus Williams", "cohort": "2021", "track": "UX/UI Design"}
+        ]
+        
+        all_success = True
+        for user in test_users:
+            try:
+                response = requests.get(f"{self.api_url}/chat-rooms?user_id={user['id']}")
+                success = response.status_code == 200
+                
+                if success:
+                    rooms = response.json()
+                    print(f"   {user['name']}: Found {len(rooms)} accessible chat rooms")
+                    
+                    # Verify room types and access control
+                    room_types = [room.get('room_type') for room in rooms]
+                    expected_types = ['cohort', 'program_track']  # Should have access to these
+                    
+                    cohort_rooms = [r for r in rooms if r.get('room_type') == 'cohort' and r.get('cohort') == user['cohort']]
+                    track_rooms = [r for r in rooms if r.get('room_type') == 'program_track' and r.get('program_track') == user['track']]
+                    
+                    print(f"      Cohort rooms: {len(cohort_rooms)}, Program track rooms: {len(track_rooms)}")
+                    
+                    # Store room IDs for message testing
+                    if rooms:
+                        self.created_ids[f'user_{user["id"]}_rooms'] = [r.get('id') for r in rooms]
+                else:
+                    print(f"   ❌ Failed to get chat rooms for {user['name']}: {response.status_code}")
+                    if response.status_code == 403:
+                        print(f"      Access denied - user may not be verified alumni")
+                    all_success = False
+                
+                self.log_test(f"Get Chat Rooms - {user['name']}", success, response.status_code,
+                             None if success else response.text,
+                             f"Found {len(rooms)} rooms" if success else None)
+                
+                if not success:
+                    all_success = False
+                    
+            except Exception as e:
+                self.log_test(f"Get Chat Rooms - {user['name']}", False, None, str(e))
+                all_success = False
+        
+        return all_success
+
+    def test_create_custom_chat_room(self):
+        """Test creating custom chat rooms (verified alumni only)"""
+        try:
+            # Use John Smith as creator (verified alumni)
+            creator_id = "54bee40c-826f-4aa5-b770-2242e397086f"
+            
+            test_room = {
+                "name": "Alumni Networking Hub",
+                "description": "A space for alumni to network and share opportunities",
+                "room_type": "custom",
+                "participants": [
+                    "54bee40c-826f-4aa5-b770-2242e397086f",  # John Smith
+                    "bea1e00c-fcba-4b26-9a1d-9692aaebd841"   # Sarah Johnson
+                ]
+            }
+            
+            response = requests.post(f"{self.api_url}/chat-rooms?creator_id={creator_id}", json=test_room)
+            success = response.status_code == 200
+            
+            if success:
+                room_data = response.json()
+                self.created_ids['custom_room_id'] = room_data.get('id')
+                print(f"   Created custom room: {room_data.get('name')} (ID: {room_data.get('id')})")
+                
+                # Verify room properties
+                required_fields = ['id', 'name', 'room_type', 'participants', 'created_by']
+                missing_fields = [field for field in required_fields if not room_data.get(field)]
+                if missing_fields:
+                    error_msg = f"Missing fields in created room: {', '.join(missing_fields)}"
+                    self.log_test("Create Custom Room - Field Validation", False, response.status_code, error_msg)
+                    return False
+                
+                # Verify creator is in participants and admins
+                if creator_id not in room_data.get('participants', []):
+                    error_msg = "Creator not added to participants"
+                    self.log_test("Create Custom Room - Creator Participation", False, response.status_code, error_msg)
+                    return False
+            
+            self.log_test("Create Custom Chat Room", success, response.status_code,
+                         None if success else response.text,
+                         response.json() if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Create Custom Chat Room", False, None, str(e))
+            return False
+
+    def test_get_room_messages(self):
+        """Test getting messages from rooms with access control"""
+        # Test with John Smith accessing his rooms
+        user_id = "54bee40c-826f-4aa5-b770-2242e397086f"
+        user_rooms_key = f'user_{user_id}_rooms'
+        
+        if user_rooms_key not in self.created_ids or not self.created_ids[user_rooms_key]:
+            self.log_test("Get Room Messages", False, None, "No room IDs available for testing")
+            return False
+        
+        try:
+            room_id = self.created_ids[user_rooms_key][0]  # Test first available room
+            
+            response = requests.get(f"{self.api_url}/chat-rooms/{room_id}/messages?user_id={user_id}&limit=50")
+            success = response.status_code == 200
+            
+            if success:
+                messages = response.json()
+                print(f"   Found {len(messages)} messages in room {room_id}")
+                
+                # Verify message structure if messages exist
+                if messages:
+                    first_message = messages[0]
+                    required_fields = ['id', 'room_id', 'sender_id', 'sender_name', 'content', 'created_at']
+                    missing_fields = [field for field in required_fields if field not in first_message]
+                    if missing_fields:
+                        error_msg = f"Missing fields in message: {', '.join(missing_fields)}"
+                        self.log_test("Get Room Messages - Structure", False, response.status_code, error_msg)
+                        return False
+                    
+                    # Verify messages are ordered (oldest first as per spec)
+                    if len(messages) > 1:
+                        first_time = messages[0].get('created_at')
+                        last_time = messages[-1].get('created_at')
+                        print(f"      Message ordering: {first_time} to {last_time}")
+                
+                # Test pagination
+                if len(messages) >= 10:  # Test skip parameter if enough messages
+                    page_response = requests.get(f"{self.api_url}/chat-rooms/{room_id}/messages?user_id={user_id}&limit=5&skip=5")
+                    if page_response.status_code == 200:
+                        page_messages = page_response.json()
+                        print(f"      Pagination test: Got {len(page_messages)} messages with skip=5")
+            
+            self.log_test("Get Room Messages", success, response.status_code,
+                         None if success else response.text,
+                         f"Found {len(messages)} messages" if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Get Room Messages", False, None, str(e))
+            return False
+
+    def test_get_direct_messages(self):
+        """Test getting direct messages between users"""
+        try:
+            # Test direct messages between John Smith and Sarah Johnson
+            user1_id = "54bee40c-826f-4aa5-b770-2242e397086f"  # John Smith
+            user2_id = "bea1e00c-fcba-4b26-9a1d-9692aaebd841"  # Sarah Johnson
+            
+            response = requests.get(f"{self.api_url}/direct-messages?user_id={user1_id}&other_user_id={user2_id}&limit=50")
+            success = response.status_code == 200
+            
+            if success:
+                messages = response.json()
+                print(f"   Found {len(messages)} direct messages between users")
+                
+                # Verify message structure if messages exist
+                if messages:
+                    first_message = messages[0]
+                    required_fields = ['id', 'sender_id', 'receiver_id', 'sender_name', 'receiver_name', 'content', 'created_at']
+                    missing_fields = [field for field in required_fields if field not in first_message]
+                    if missing_fields:
+                        error_msg = f"Missing fields in direct message: {', '.join(missing_fields)}"
+                        self.log_test("Get Direct Messages - Structure", False, response.status_code, error_msg)
+                        return False
+                    
+                    # Verify message participants are correct
+                    for msg in messages:
+                        sender = msg.get('sender_id')
+                        receiver = msg.get('receiver_id')
+                        if not ((sender == user1_id and receiver == user2_id) or (sender == user2_id and receiver == user1_id)):
+                            error_msg = f"Invalid message participants: {sender} -> {receiver}"
+                            self.log_test("Get Direct Messages - Participants", False, response.status_code, error_msg)
+                            return False
+                    
+                    print(f"      ✅ All messages have correct participants")
+            
+            self.log_test("Get Direct Messages", success, response.status_code,
+                         None if success else response.text,
+                         f"Found {len(messages)} direct messages" if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Get Direct Messages", False, None, str(e))
+            return False
+
+    def test_get_user_conversations(self):
+        """Test getting conversation list with unread counts"""
+        try:
+            # Test with John Smith
+            user_id = "54bee40c-826f-4aa5-b770-2242e397086f"
+            
+            response = requests.get(f"{self.api_url}/direct-messages/conversations?user_id={user_id}")
+            success = response.status_code == 200
+            
+            if success:
+                conversations = response.json()
+                print(f"   Found {len(conversations)} conversations for user")
+                
+                # Verify conversation structure
+                if conversations:
+                    first_conv = conversations[0]
+                    required_fields = ['other_user_id', 'other_user_name', 'latest_message', 'unread_count']
+                    missing_fields = [field for field in required_fields if field not in first_conv]
+                    if missing_fields:
+                        error_msg = f"Missing fields in conversation: {', '.join(missing_fields)}"
+                        self.log_test("Get Conversations - Structure", False, response.status_code, error_msg)
+                        return False
+                    
+                    # Verify unread count is a number
+                    for conv in conversations:
+                        unread_count = conv.get('unread_count')
+                        if not isinstance(unread_count, int) or unread_count < 0:
+                            error_msg = f"Invalid unread count: {unread_count}"
+                            self.log_test("Get Conversations - Unread Count", False, response.status_code, error_msg)
+                            return False
+                    
+                    print(f"      ✅ All conversations have valid structure and unread counts")
+            
+            self.log_test("Get User Conversations", success, response.status_code,
+                         None if success else response.text,
+                         f"Found {len(conversations)} conversations" if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Get User Conversations", False, None, str(e))
+            return False
+
+    def test_user_online_status(self):
+        """Test getting user online status"""
+        test_user_ids = [
+            "54bee40c-826f-4aa5-b770-2242e397086f",  # John Smith
+            "bea1e00c-fcba-4b26-9a1d-9692aaebd841",  # Sarah Johnson
+            "09fee5f9-2ad1-4c96-a756-75501616a704"   # Marcus Williams
+        ]
+        
+        all_success = True
+        for user_id in test_user_ids:
+            try:
+                response = requests.get(f"{self.api_url}/users/{user_id}/online-status")
+                success = response.status_code == 200
+                
+                if success:
+                    status_data = response.json()
+                    print(f"   User {user_id}: Status = {status_data.get('status')}")
+                    
+                    # Verify status structure
+                    required_fields = ['user_id', 'status']
+                    missing_fields = [field for field in required_fields if field not in status_data]
+                    if missing_fields:
+                        error_msg = f"Missing fields in status: {', '.join(missing_fields)}"
+                        self.log_test(f"User Status Structure - {user_id}", False, response.status_code, error_msg)
+                        all_success = False
+                        continue
+                    
+                    # Verify status value is valid
+                    valid_statuses = ['online', 'offline', 'away']
+                    if status_data.get('status') not in valid_statuses:
+                        error_msg = f"Invalid status: {status_data.get('status')}"
+                        self.log_test(f"User Status Value - {user_id}", False, response.status_code, error_msg)
+                        all_success = False
+                        continue
+                else:
+                    print(f"   ❌ Failed to get status for user {user_id}: {response.status_code}")
+                    all_success = False
+                
+                self.log_test(f"Get User Status - {user_id}", success, response.status_code,
+                             None if success else response.text,
+                             status_data.get('status') if success else None)
+                
+                if not success:
+                    all_success = False
+                    
+            except Exception as e:
+                self.log_test(f"Get User Status - {user_id}", False, None, str(e))
+                all_success = False
+        
+        return all_success
+
+    def test_chat_image_upload(self):
+        """Test image upload for chat"""
+        try:
+            # Test with John Smith (verified alumni)
+            user_id = "54bee40c-826f-4aa5-b770-2242e397086f"
+            
+            # Create a simple test image file (1x1 pixel PNG)
+            import base64
+            import io
+            
+            # Minimal PNG data (1x1 transparent pixel)
+            png_data = base64.b64decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77zgAAAABJRU5ErkJggg=='
+            )
+            
+            files = {
+                'file': ('test_chat_image.png', io.BytesIO(png_data), 'image/png')
+            }
+            
+            response = requests.post(f"{self.api_url}/chat-images/upload?user_id={user_id}", files=files)
+            success = response.status_code == 200
+            
+            if success:
+                result = response.json()
+                image_url = result.get('image_url')
+                print(f"   Chat image uploaded successfully: {image_url}")
+                
+                # Verify image URL format
+                if not image_url or not image_url.startswith('/uploads/chat_images/'):
+                    error_msg = f"Invalid image URL format: {image_url}"
+                    self.log_test("Chat Image Upload - URL Format", False, response.status_code, error_msg)
+                    return False
+                
+                self.created_ids['chat_image_url'] = image_url
+            
+            self.log_test("Chat Image Upload", success, response.status_code,
+                         None if success else response.text,
+                         response.json() if success else None)
+            return success
+        except Exception as e:
+            self.log_test("Chat Image Upload", False, None, str(e))
+            return False
+
+    def test_access_control_non_verified_user(self):
+        """Test access control - non-verified users should be denied"""
+        try:
+            # Create a non-verified user for testing
+            test_user = {
+                "name": "Non Verified User",
+                "email": f"nonverified_{datetime.now().strftime('%H%M%S')}@example.com",
+                "cohort": "2023",
+                "program_track": "Web Development",
+                "is_verified_alumni": False  # Not verified
+            }
+            
+            # Create the user first
+            create_response = requests.post(f"{self.api_url}/users", json=test_user)
+            if create_response.status_code != 200:
+                self.log_test("Access Control Test - User Creation", False, create_response.status_code, create_response.text)
+                return False
+            
+            user_data = create_response.json()
+            non_verified_user_id = user_data.get('id')
+            
+            # Test chat rooms access (should be denied)
+            response = requests.get(f"{self.api_url}/chat-rooms?user_id={non_verified_user_id}")
+            access_denied = response.status_code == 403
+            
+            if access_denied:
+                print(f"   ✅ Non-verified user correctly denied access to chat rooms")
+            else:
+                error_msg = f"Non-verified user was granted access (status: {response.status_code})"
+                self.log_test("Access Control - Chat Rooms", False, response.status_code, error_msg)
+                return False
+            
+            # Test chat image upload (should be denied)
+            import base64
+            import io
+            png_data = base64.b64decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77zgAAAABJRU5ErkJggg=='
+            )
+            files = {
+                'file': ('test.png', io.BytesIO(png_data), 'image/png')
+            }
+            
+            upload_response = requests.post(f"{self.api_url}/chat-images/upload?user_id={non_verified_user_id}", files=files)
+            upload_denied = upload_response.status_code == 403
+            
+            if upload_denied:
+                print(f"   ✅ Non-verified user correctly denied chat image upload")
+            else:
+                error_msg = f"Non-verified user was granted upload access (status: {upload_response.status_code})"
+                self.log_test("Access Control - Image Upload", False, upload_response.status_code, error_msg)
+                return False
+            
+            self.log_test("Access Control - Non-Verified User", True, 403, None,
+                         "Non-verified user correctly denied access to messaging features")
+            return True
+            
+        except Exception as e:
+            self.log_test("Access Control - Non-Verified User", False, None, str(e))
+            return False
+
+    def test_cohort_based_room_access(self):
+        """Test cohort-based room access control"""
+        try:
+            # Test users from different cohorts
+            test_users = [
+                {"id": "54bee40c-826f-4aa5-b770-2242e397086f", "name": "John Smith", "cohort": "2023"},
+                {"id": "bea1e00c-fcba-4b26-9a1d-9692aaebd841", "name": "Sarah Johnson", "cohort": "2022"},
+                {"id": "09fee5f9-2ad1-4c96-a756-75501616a704", "name": "Marcus Williams", "cohort": "2021"}
+            ]
+            
+            all_success = True
+            for user in test_users:
+                # Get user's accessible rooms
+                response = requests.get(f"{self.api_url}/chat-rooms?user_id={user['id']}")
+                if response.status_code != 200:
+                    print(f"   ❌ Failed to get rooms for {user['name']}")
+                    all_success = False
+                    continue
+                
+                rooms = response.json()
+                cohort_rooms = [r for r in rooms if r.get('room_type') == 'cohort']
+                
+                # Verify user only has access to their cohort room
+                user_cohort_rooms = [r for r in cohort_rooms if r.get('cohort') == user['cohort']]
+                other_cohort_rooms = [r for r in cohort_rooms if r.get('cohort') != user['cohort']]
+                
+                if other_cohort_rooms:
+                    error_msg = f"{user['name']} has access to other cohort rooms: {[r.get('cohort') for r in other_cohort_rooms]}"
+                    self.log_test(f"Cohort Access Control - {user['name']}", False, 200, error_msg)
+                    all_success = False
+                else:
+                    print(f"   ✅ {user['name']} (cohort {user['cohort']}): Correct cohort access")
+            
+            self.log_test("Cohort-Based Room Access", all_success, 200, None,
+                         "Users have correct cohort-based room access")
+            return all_success
+            
+        except Exception as e:
+            self.log_test("Cohort-Based Room Access", False, None, str(e))
+            return False
+
+    def test_program_track_based_room_access(self):
+        """Test program track-based room access control"""
+        try:
+            # Test users from different program tracks
+            test_users = [
+                {"id": "54bee40c-826f-4aa5-b770-2242e397086f", "name": "John Smith", "track": "Web Development"},
+                {"id": "bea1e00c-fcba-4b26-9a1d-9692aaebd841", "name": "Sarah Johnson", "track": "Data Analytics"},
+                {"id": "09fee5f9-2ad1-4c96-a756-75501616a704", "name": "Marcus Williams", "track": "UX/UI Design"}
+            ]
+            
+            all_success = True
+            for user in test_users:
+                # Get user's accessible rooms
+                response = requests.get(f"{self.api_url}/chat-rooms?user_id={user['id']}")
+                if response.status_code != 200:
+                    print(f"   ❌ Failed to get rooms for {user['name']}")
+                    all_success = False
+                    continue
+                
+                rooms = response.json()
+                track_rooms = [r for r in rooms if r.get('room_type') == 'program_track']
+                
+                # Verify user only has access to their program track room
+                user_track_rooms = [r for r in track_rooms if r.get('program_track') == user['track']]
+                other_track_rooms = [r for r in track_rooms if r.get('program_track') != user['track']]
+                
+                if other_track_rooms:
+                    error_msg = f"{user['name']} has access to other program track rooms: {[r.get('program_track') for r in other_track_rooms]}"
+                    self.log_test(f"Program Track Access Control - {user['name']}", False, 200, error_msg)
+                    all_success = False
+                else:
+                    print(f"   ✅ {user['name']} (track {user['track']}): Correct program track access")
+            
+            self.log_test("Program Track-Based Room Access", all_success, 200, None,
+                         "Users have correct program track-based room access")
+            return all_success
+            
+        except Exception as e:
+            self.log_test("Program Track-Based Room Access", False, None, str(e))
+            return False
+
+    def run_messaging_system_tests(self):
+        """Run comprehensive Group Messaging System tests"""
+        print("💬 Testing Group Messaging System:")
+        print("=" * 50)
+        
+        # Test basic connectivity first
+        if not self.test_root_endpoint():
+            print("❌ Root endpoint failed - stopping tests")
+            return False
+        
+        # Chat Room Management
+        print("\n🏠 Testing Chat Room Management:")
+        self.test_get_user_chat_rooms()
+        self.test_create_custom_chat_room()
+        
+        # Message Operations
+        print("\n💬 Testing Message Operations:")
+        self.test_get_room_messages()
+        
+        # Direct Messaging
+        print("\n📨 Testing Direct Messaging:")
+        self.test_get_direct_messages()
+        self.test_get_user_conversations()
+        
+        # User Status & File Upload
+        print("\n👤 Testing User Status & File Upload:")
+        self.test_user_online_status()
+        self.test_chat_image_upload()
+        
+        # Access Control & Security
+        print("\n🔒 Testing Access Control & Security:")
+        self.test_access_control_non_verified_user()
+        self.test_cohort_based_room_access()
+        self.test_program_track_based_room_access()
+        
+        # Print summary
+        print("\n" + "=" * 50)
+        print(f"📊 Messaging System Test Results: {self.tests_passed}/{self.tests_run} passed")
+        success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
+        print(f"📈 Success Rate: {success_rate:.1f}%")
+        
+        if self.tests_passed == self.tests_run:
+            print("🎉 All Messaging System tests passed!")
+            return True
+        else:
+            print("⚠️  Some Messaging System tests failed - check logs above")
+            return False
+
     def run_user_profile_tests(self):
         """Run comprehensive User Profile Management tests"""
         print("👤 Testing User Profile Management System:")
