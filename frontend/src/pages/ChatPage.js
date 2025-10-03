@@ -73,8 +73,13 @@ const ChatPage = () => {
       setCurrentUser(userData);
 
       // Initialize WebSocket connection
-      console.log('Connecting to WebSocket server at:', BACKEND_URL);
-      const newSocket = io(BACKEND_URL, {
+      // For development, connect to local backend; for production, use backend URL
+      const socketURL = window.location.hostname === 'localhost' 
+        ? 'http://localhost:8001' 
+        : BACKEND_URL;
+      
+      console.log('Connecting to WebSocket server at:', socketURL);
+      const newSocket = io(socketURL, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true
