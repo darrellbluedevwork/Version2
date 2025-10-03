@@ -21,6 +21,7 @@ import AdminPage from "./pages/AdminPage";
 import UsersPage from "./pages/UsersPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import EditProfilePage from "./pages/EditProfilePage";
+import ChatPage from "./pages/ChatPage";
 
 // Import components
 import Header from "./components/Header";
